@@ -1,0 +1,21 @@
+<RCC>
+    <qresource prefix="/new">
+        <file>images/menu.png</file>
+        <file>images/settings.png</file>
+        <file>images/iconWindow.png</file>
+        <file>images/Ellipse.png</file>
+        <file>images/diagram_concept.jpg</file>
+        <file>images/statisticts.jpg</file>
+        <file>images/statisticts_more.jpg</file>
+        <file>images/time.png</file>
+        <file>images/option.png</file>
+        <file>images/task_pofiles.png</file>
+        <file>images/right.png</file>
+        <file>images/search.png</file>
+        <file>images/left.png</file>
+    </qresource>
+    <qresource prefix="/fonts">
+        <file>fonts/Jost/static/Jost-Regular.ttf</file>
+    </qresource>
+    <qresource prefix="/"/>
+</RCC>

@@ -1,0 +1,37 @@
+#ifndef CLIENTHANDLER_H
+#define CLIENTHANDLER_H
+
+#include <QTcpSocket>
+#include <QSqlDatabase>
+#include <QObject>
+#include <QJsonObject>
+#include <QJsonDocument>
+
+class ClientHandler : public QObject {
+        Q_OBJECT
+    public:
+        explicit ClientHandler(qintptr socketDescriptor, const QSqlDatabase &refDb, QObject *parent = nullptr);
+    public slots:
+        void handleConnection();
+        void readData();
+        void disconnected();
+    signals:
+        void finished();
+    private:
+        QSqlDatabase m_refDatabase;
+        QTcpSocket* m_socket;
+        qintptr m_socketDescriptor;
+        QString sessionId;
+        QSqlDatabase db;
+
+        void initializeDatabase();
+        QJsonObject handleLogin(const QJsonObject& request);
+        QJsonObject handleRegister(const QJsonObject &request);
+        QJsonObject handleGetTasks(const QJsonObject &request);
+        QJsonObject handleLogout(const QJsonObject &request);
+        void createNewSession();
+        void saveSessionData(const QByteArray& data);
+        QByteArray loadSessionData();
+};
+
+#endif // CLIENTHANDLER_H
