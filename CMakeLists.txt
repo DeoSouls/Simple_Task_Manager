@@ -33,6 +33,14 @@ qt_add_qml_module(appSimpleTaskManager
         QML_FILES common/ErrorPopup.qml
         QML_FILES common/CustomButton.qml
         SOURCES server/clienthandler.h server/clienthandler.cpp
+        QML_FILES common/Search.qml
+        QML_FILES common/Tab.qml
+        QML_FILES SpacePage/Space.qml
+        QML_FILES common/CustomMenu.qml
+        QML_FILES SpacePage/CreateTaskForm.qml
+        QML_FILES common/CustomCalendar.qml
+        QML_FILES common/SpaceTab.qml
+        SOURCES src/tasksmodel.h src/tasksmodel.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

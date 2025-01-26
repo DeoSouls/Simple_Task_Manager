@@ -13,6 +13,10 @@
         <file>images/right.png</file>
         <file>images/search.png</file>
         <file>images/left.png</file>
+        <file>images/home.png</file>
+        <file>images/plus.png</file>
+        <file>images/taskMenu.png</file>
+        <file>images/add.png</file>
     </qresource>
     <qresource prefix="/fonts">
         <file>fonts/Jost/static/Jost-Regular.ttf</file>

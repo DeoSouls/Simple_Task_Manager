@@ -1,6 +1,7 @@
 #include "clienthandler.h"
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QJsonArray>
 #include <QCryptographicHash>
 #include "sessionmanager.h"
 
@@ -22,7 +23,7 @@ void ClientHandler::initializeDatabase() {
     }
 
     // Проверяем существование таблицы
-    if(!db.tables().contains("users")) {
+    if(!db.tables().contains("users") || !db.tables().contains("spaces") || !db.tables().contains("tasks")) {
         QSqlQuery query(db);
         query.exec("CREATE TABLE IF NOT EXISTS users ("
                    "id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -30,6 +31,23 @@ void ClientHandler::initializeDatabase() {
                    "password_hash TEXT,"
                    "email TEXT UNIQUE,"
                    "created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+
+        query.exec("CREATE TABLE IF NOT EXISTS spaces ("
+                   "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                   "spacename TEXT,"
+                   "user_id INTEGER,"
+                   "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                   "FOREIGN KEY (user_id) REFERENCES users(id))");
+
+        query.exec("CREATE TABLE IF NOT EXISTS tasks ("
+                   "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                   "title TEXT NOT NULL,"
+                   "description TEXT,"
+                   "status TEXT NOT NULL DEFAULT 'pending',"
+                   "space_id INTEGER,"
+                   "due_time DATETIME,"
+                   "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                   "FOREIGN KEY (space_id) REFERENCES spaces(id))");
     }
 }
 
@@ -73,7 +91,13 @@ void ClientHandler::readData() {
         response = handleLogin(request);
     } else if (endpoint == "register") {
         response = handleRegister(request);
-    } else if (endpoint == "tasks") {
+    } else if (endpoint == "create_space") {
+        response = handleCreateSpace(request);
+    } else if (endpoint == "spaces") {
+        response = handleGetSpaces(request);
+    } else if (endpoint == "create_task") {
+        response = handleCreateTasks(request);
+    }else if (endpoint == "tasks") {
         response = handleGetTasks(request);
     } else {
         response["success"] = false;
@@ -107,11 +131,13 @@ QJsonObject ClientHandler::handleLogin(const QJsonObject& request) {
         int userId = query.value("id").toInt();
         QString storedPasswordHash = query.value("password_hash").toString();
 
+        qDebug() << "id пользователя: " << userId;
         if(passwordHash.toHex() == storedPasswordHash) {
             QString token = SessionManager::instance().createSession(userId);
 
             response["success"] = true;
             response["token"] = token;
+            response["userId"] = userId;
         } else {
             response["success"] = false;
             response["error"] = "Неверный пароль";
@@ -146,6 +172,7 @@ QJsonObject ClientHandler::handleRegister(const QJsonObject& request) {
         qDebug() << "Пользователь успешно зарегистрирован: " << username;
         response["success"] = true;
         response["token"] = token;
+        response["userId"] = userId;
     } else {
         response["success"] = false;
         response["error"] = "Invalid username or password.";
@@ -154,8 +181,153 @@ QJsonObject ClientHandler::handleRegister(const QJsonObject& request) {
     return response;
 }
 
+QJsonObject ClientHandler::handleCreateSpace(const QJsonObject& request) {
+    QString spacename = request.value("spacename").toString();
+    int userId = request.value("userId").toInt();
+
+    QSqlQuery query(m_refDatabase);
+    query.prepare("INSERT INTO spaces (spacename, user_id) "
+                  "VALUES (:spacename, :user_id) RETURNING id, user_id");
+    query.bindValue(":spacename", spacename);
+    query.bindValue(":user_id", userId);
+
+    QJsonObject response;
+    if (query.exec() && query.next()) {
+        int spaceId = query.value("id").toInt();
+        int user_id = query.value("user_id").toInt();
+        // QString token = SessionManager::instance().createSession(userId);
+
+        qDebug() << "Пространство успешно создано: " << user_id;
+        response["success"] = true;
+        response["spaceId"] = spaceId;
+        response["spacename"] = spacename;
+    } else {
+        response["success"] = false;
+        response["error"] = "Invalid create space.";
+    }
+
+    return response;
+}
+
+QJsonObject ClientHandler::handleGetSpaces(const QJsonObject& request) {
+    int userId = request.value("userId").toInt();
+    // validate session
+    QSqlQuery query(m_refDatabase);
+    query.prepare("SELECT id, spacename FROM spaces WHERE user_id = :user_id");
+    query.bindValue(":user_id", userId);
+
+    QJsonObject response;
+    QJsonArray responseArray;
+    if (!query.exec()){
+        response["success"] = false;
+        response["error"] = "No spaces found for this user.";
+        return response;
+    }
+
+    while(query.next()) {
+        QJsonObject responseToArray;
+        qDebug() << "Пространство: " << userId;
+        int spaceId = query.value("id").toInt();
+        QString spacename = query.value("spacename").toString();
+        // QString token = SessionManager::instance().createSession(userId);
+
+        responseToArray["spaceId"] = spaceId;
+        responseToArray["spacename"] = spacename;
+        responseArray.append(responseToArray);
+    }
+
+    if(responseArray.isEmpty()) {
+        response["success"] = false;
+        response["error"] = "None spaces";
+        return response;
+    } else {
+        response["success"] = true;
+        response["type"] = "spaces";
+        response["data"] = responseArray;
+        return response;
+    }
+}
+
+QJsonObject ClientHandler::handleCreateTasks(const QJsonObject& request) {
+    QString title = request.value("title").toString();
+    QString description = request.value("description").toString();
+    QString status = request.value("status").toString();
+    QString due_time = request.value("due_time").toString();
+    int spaceId = request.value("space_id").toInt();
+
+    QSqlQuery query(m_refDatabase);
+    query.prepare("INSERT INTO tasks (title, description, status, due_time, space_id) "
+                  "VALUES (:title, :description, :status, :due_time, :spaceId) RETURNING id");
+    query.bindValue(":title", title);
+    query.bindValue(":description", description);
+    query.bindValue(":status", status);
+    query.bindValue(":due_time", due_time);
+    query.bindValue(":spaceId", spaceId);
+
+    QJsonObject response;
+    if (query.exec() && query.next()) {
+        int taskId = query.value("id").toInt();
+        // QString token = SessionManager::instance().createSession(userId);
+
+        qDebug() << "Таск успешно создан: " << taskId;
+        response["success"] = true;
+        response["taskId"] = taskId;
+        response["type"] = "created_task";
+    } else {
+        response["success"] = false;
+        response["error"] = "Invalid create task.";
+    }
+
+    return response;
+}
+
 QJsonObject ClientHandler::handleGetTasks(const QJsonObject& request) {
-    ///
+    int spaceId = request.value("spaceId").toInt();
+    // validate session
+    QSqlQuery query(m_refDatabase);
+    query.prepare("SELECT id, title, description, status, due_time, created_at FROM tasks WHERE space_id = :space_id");
+    query.bindValue(":space_id", spaceId);
+
+    QJsonObject response;
+    QJsonArray responseArray;
+    if (!query.exec()){
+        response["success"] = false;
+        response["error"] = "No spaces found for this user.";
+        return response;
+    }
+
+    while(query.next()) {
+        QJsonObject responseToArray;
+        int taskId = query.value("id").toInt();
+        QString title = query.value("title").toString();
+        QString description = query.value("description").toString();
+        QString status = query.value("status").toString();
+        QString due_time = query.value("due_time").toString();
+        QString created_at = query.value("created_at").toString();
+
+        // QString token = SessionManager::instance().createSession(userId);
+        qDebug() << "Таск: " << taskId;
+
+        responseToArray["taskId"] = taskId;
+        responseToArray["title"] = title;
+        responseToArray["description"] = description;
+        responseToArray["status"] = status;
+        responseToArray["createTime"] = created_at;
+        responseToArray["dueTime"] = due_time;
+        responseToArray["spaceId"] = spaceId;
+        responseArray.append(responseToArray);
+    }
+
+    if(responseArray.isEmpty()) {
+        response["success"] = false;
+        response["error"] = "None tasks";
+        return response;
+    } else {
+        response["success"] = true;
+        response["type"] = "get_tasks";
+        response["data"] = responseArray;
+        return response;
+    }
 }
 
 QJsonObject ClientHandler::handleLogout(const QJsonObject &request) {

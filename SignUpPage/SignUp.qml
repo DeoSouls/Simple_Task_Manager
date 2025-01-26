@@ -19,7 +19,7 @@ Page {
     function handleClientMessage(message) {
         if(message != undefined && message["success"]) {
             console.log("Успешная регистрация/авторизация");
-            signup.StackView.view.push("../HomePage/Home.qml", {})
+            signup.StackView.view.push("../HomePage/Home.qml", { userId: message["userId"] })
         } else {
             errorPopup.textPopup = message["error"];
             errorPopup.open();

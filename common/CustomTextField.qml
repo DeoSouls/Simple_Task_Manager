@@ -23,8 +23,6 @@ TextField {
         }
     }
 
-
-
     color: "black";
     selectionColor: "lightblue"
     selectedTextColor: "white"
@@ -37,7 +35,6 @@ TextField {
             leftMargin: 10
             verticalCenterOffset: -3
         }
-
         font {
             family: "Jost"
             pixelSize: 16

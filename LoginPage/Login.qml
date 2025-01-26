@@ -28,8 +28,8 @@ Page {
 
     function handleClientMessage(message) {
         if(message != undefined && message["success"]) {
-            console.log("Успешная регистрация/авторизация");
-            login.StackView.view.push("../HomePage/Home.qml", {})
+            console.log("Успешная регистрация/авторизация: " + message["userId"]);
+            login.StackView.view.push("../HomePage/Home.qml", { userId: parseInt(message["userId"]) })
         } else {
             errorPopup.textPopup = message["error"];
             errorPopup.open();

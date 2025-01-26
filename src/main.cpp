@@ -7,6 +7,7 @@
 #include <QSqlQuery>
 #include <QFontDatabase>
 #include "client.h"
+#include "tasksmodel.h"
 
 bool connectToDatabase(const QString &dbPath) {
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE"); // Указываем драйвер SQLite
@@ -18,11 +19,11 @@ bool connectToDatabase(const QString &dbPath) {
     }
 
     QSqlQuery query;
-    // if (query.exec("DROP TABLE IF EXISTS users")) {
-    //     qDebug() << "Таблица успешно удалена";
-    // } else {
-    //     qDebug() << "Ошибка удаления таблицы" << query.lastError();
-    // }
+    if (query.exec("DROP TABLE IF EXISTS tasks")) {
+        qDebug() << "Таблица успешно удалена";
+    } else {
+        qDebug() << "Ошибка удаления таблицы" << query.lastError();
+    }
     // Create users table
     query.exec("CREATE TABLE IF NOT EXISTS users ("
                "id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -30,6 +31,23 @@ bool connectToDatabase(const QString &dbPath) {
                "password_hash TEXT,"
                "email TEXT UNIQUE,"
                "created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+
+    query.exec("CREATE TABLE IF NOT EXISTS spaces ("
+               "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+               "spacename TEXT,"
+               "user_id INTEGER,"
+               "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+               "FOREIGN KEY (user_id) REFERENCES users(id))");
+
+    query.exec("CREATE TABLE IF NOT EXISTS tasks ("
+               "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+               "title TEXT NOT NULL,"
+               "description TEXT,"
+               "status TEXT NOT NULL DEFAULT 'pending',"
+               "space_id INTEGER,"
+               "due_time DATETIME,"
+               "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+               "FOREIGN KEY (space_id) REFERENCES spaces(id))");
 
     qDebug() << "Connected and created tables database successfully! " + db.databaseName();
     return true;
@@ -60,12 +78,19 @@ int main(int argc, char *argv[]) {
     }
 
     QSqlQuery query(defaultDB);
-    // if (query.exec("DROP TABLE IF EXISTS users")) {
+    // if (query.exec("DROP TABLE IF EXISTS spaces")) {
     //     qDebug() << "Таблица успешно удалена";
     // } else {
     //     qDebug() << "Ошибка удаления таблицы" << query.lastError();
     // }
     // Create users table
+    query.exec("CREATE TABLE IF NOT EXISTS spaces ("
+               "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+               "spacename TEXT,"
+               "user_id INTEGER,"
+               "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+               "FOREIGN KEY (user_id) REFERENCES users(id))");
+
     query.exec("CREATE TABLE IF NOT EXISTS users ("
                "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                "username TEXT UNIQUE,"
@@ -84,6 +109,7 @@ int main(int argc, char *argv[]) {
         QMessageBox::critical(nullptr, "Server connection failed", "Не удалось открыть соединение");
     }
 
+    qmlRegisterType<TasksModel>("com.tasksmodel.network", 1, 0, "TasksModel");
     qmlRegisterType<Client>("com.client.network", 1, 0, "Client");
     // import com.client.network 1.0
 

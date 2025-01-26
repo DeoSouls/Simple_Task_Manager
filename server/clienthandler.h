@@ -27,7 +27,10 @@ class ClientHandler : public QObject {
         void initializeDatabase();
         QJsonObject handleLogin(const QJsonObject& request);
         QJsonObject handleRegister(const QJsonObject &request);
-        QJsonObject handleGetTasks(const QJsonObject &request);
+        QJsonObject handleCreateSpace(const QJsonObject& request);
+        QJsonObject handleGetSpaces(const QJsonObject& request);
+        QJsonObject handleCreateTasks(const QJsonObject &request);
+        QJsonObject handleGetTasks(const QJsonObject& request);
         QJsonObject handleLogout(const QJsonObject &request);
         void createNewSession();
         void saveSessionData(const QByteArray& data);

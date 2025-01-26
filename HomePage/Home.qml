@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Layouts
 import QtQuick.Controls 2.15
 import "../common"
 
@@ -7,6 +8,44 @@ Page {
     id: home
     anchors.top: parent.top
     anchors.topMargin: 20
+
+    property int userId: 0
+
+    ErrorPopup {
+        id: errorPopup
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        borderWidth: 0
+    }
+
+    function handleClientMessage(message) {
+        if(message["type"] === "spaces" && message["success"]) {
+            menuDrawer.initialSpaces = message["data"];
+        } else if(message != undefined && message["success"]) {
+            console.log("Создано пространство id: "+ message["spaceId"]);
+            menuDrawer.container.createObjectFromString(message["spaceId"],
+                                                           message["spacename"],
+                                                           StackView.view,
+                                                           menuDrawer);
+            if (!Array.isArray(menuDrawer.initialSpaces)) {
+                menuDrawer.initialSpaces = [];
+            }
+            menuDrawer.initialSpaces.push({
+                spaceId: message["spaceId"],
+                spacename: message["spacename"]
+            });
+        } else {
+            errorPopup.textPopup = message["error"];
+            errorPopup.open();
+        }
+    }
+
+    CustomMenu {
+        id: menuDrawer
+        userId: home.userId
+        currentPage: home
+    }
+
     header: ToolBar {
         height: 40
         background: null
@@ -18,7 +57,6 @@ Page {
             borderWidth: 0
             borderRadius: 24
             hoverEnabled: false
-
             backColor: "transparent"
 
             anchors {
@@ -28,8 +66,7 @@ Page {
             }
 
             onClicked: {
-                // home.StackView.view.push("../MenuPage/MainMenu.qml", {})
-                home.StackView.view.pop();
+                menuDrawer.open();
             }
 
             Image {
