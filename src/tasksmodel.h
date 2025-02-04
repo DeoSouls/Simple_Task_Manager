@@ -13,6 +13,7 @@ struct Tasks {
     QString createTime;
     QString dueTime;
     int spaceId;
+    int taskId;
 };
 
 class TasksModel : public QAbstractListModel {
@@ -24,7 +25,8 @@ class TasksModel : public QAbstractListModel {
             StatusRole,
             CreateTimeRole,
             DueTimeRole,
-            SpaceIdRole
+            SpaceIdRole,
+            TaskIdRole
         };
         explicit TasksModel(QObject *parent = nullptr);
 
@@ -35,7 +37,8 @@ class TasksModel : public QAbstractListModel {
         QHash<int, QByteArray> roleNames() const override;
     public slots:
         Q_INVOKABLE void updateFromJson(const QJsonArray &data);
-        Q_INVOKABLE void addTask(const QString &title, const QString &description, const QString &status, const QString &createTime, const QString& dueTime, int spaceId);
+        Q_INVOKABLE void removeTask(int row);
+        Q_INVOKABLE void addTask(const QString &title, const QString &description, const QString &status, const QString &createTime, const QString& dueTime, int spaceId, int taskId);
     private:
         QList<Tasks> m_tasks;
 };

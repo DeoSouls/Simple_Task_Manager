@@ -11,6 +11,7 @@ Item {
     property int startYear: 1900
     property int endYear: new Date().getFullYear() + 10
     property date fullDate: datePicker.getDateTimeForDB()
+    property string timeSelected: ""
 
     signal dateSelected(date selectedDate)
 
@@ -63,41 +64,72 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        spacing: 15
+        spacing: 10
 
         // День
         ComboBox {
             id: dayCombo
-            Layout.fillWidth: true
-            height: 28
+            Layout.preferredWidth: 70  // Фиксированная ширина
+            Layout.fillWidth: false
+            height: 50
             font {
                 family: "Jost"
-                pixelSize: 13
+                pixelSize: 13 + ThemeManager.additionalSize
             }
             model: ListModel { id: daysModel }
             onActivated: {
                 day = parseInt(currentText)
-                currentIndex = day - 1 // Обновляем индекс
+                currentIndex = day - 1
             }
             currentIndex: {
                 var idx = day - 1
                 return idx >= 0 && idx < count ? idx : 0
             }
 
+            contentItem: Text {
+                text: dayCombo.displayText
+                color: ThemeManager.fontColor
+                font: dayCombo.font
+                verticalAlignment: Text.AlignVCenter
+                leftPadding: 12
+            }
+
             delegate: ItemDelegate {
                 width: dayCombo.width
-                text: model.text
+                height: 50
+                contentItem: Text {
+                    text: model.text
+                    color: ThemeManager.fontColor
+                    font: dayCombo.font
+                    verticalAlignment: Text.AlignVCenter
+                    // leftPadding: 12
+                }
                 highlighted: dayCombo.highlightedIndex === index
+
+                background: Rectangle {
+                    color: ThemeManager.backgroundColor
+                }
+            }
+
+            background: Rectangle {
+                implicitWidth: dayCombo.width
+                implicitHeight: dayCombo.height
+                color: ThemeManager.backgroundColor
+                border.color: ThemeManager.fontColor
+                border.width: 1
+                radius: 4
             }
         }
 
         // Месяц
         ComboBox {
             id: monthCombo
-            Layout.fillWidth: true
+            Layout.preferredWidth: 70  // Фиксированная ширина
+            Layout.fillWidth: false
+            height: 50
             font {
                 family: "Jost"
-                pixelSize: 13
+                pixelSize: 13 + ThemeManager.additionalSize
             }
             model: ListModel {
                 id: monthsModel
@@ -112,56 +144,134 @@ Item {
             currentIndex: month
             onActivated: month = index
 
+            contentItem: Text {
+                text: monthCombo.displayText
+                color: ThemeManager.fontColor
+                font: monthCombo.font
+                verticalAlignment: Text.AlignVCenter
+            }
+
             delegate: ItemDelegate {
                 width: monthCombo.width
-                text: model.text
+                height: 50
+                contentItem: Text {
+                    text: model.text
+                    color: ThemeManager.fontColor
+                    font: monthCombo.font
+                    verticalAlignment: Text.AlignVCenter
+                }
                 highlighted: monthCombo.highlightedIndex === index
+
+                background: Rectangle {
+                    color: ThemeManager.backgroundColor
+                }
+            }
+
+            background: Rectangle {
+                implicitWidth: monthCombo.width
+                implicitHeight: monthCombo.height
+                color: ThemeManager.backgroundColor
+                border.color: ThemeManager.fontColor
+                border.width: 1
+                radius: 4
             }
         }
 
         // Год
         ComboBox {
             id: yearCombo
-            Layout.fillWidth: true
+            Layout.preferredWidth: 70  // Фиксированная ширина
+            Layout.fillWidth: false
+            height: 50
             font {
                 family: "Jost"
-                pixelSize: 13
+                pixelSize: 12 + ThemeManager.additionalSize
             }
             model: ListModel { id: yearsModel }
             currentIndex: year - startYear
             onActivated: year = parseInt(currentText)
 
+            contentItem: Text {
+                text: yearCombo.displayText
+                color: ThemeManager.fontColor
+                font: yearCombo.font
+                verticalAlignment: Text.AlignVCenter
+                leftPadding: 12
+            }
+
             delegate: ItemDelegate {
                 width: yearCombo.width
-                text: model.text
+                height: 50
+                contentItem: Text {
+                    text: model.text
+                    color: ThemeManager.fontColor
+                    font: yearCombo.font
+                    verticalAlignment: Text.AlignVCenter
+                }
                 highlighted: yearCombo.highlightedIndex === index
+
+                background: Rectangle {
+                    color: ThemeManager.backgroundColor
+                }
+            }
+
+            background: Rectangle {
+                implicitWidth: yearCombo.width
+                implicitHeight: yearCombo.height
+                color: ThemeManager.backgroundColor
+                border.color: ThemeManager.fontColor
+                border.width: 1
+                radius: 4
             }
         }
 
         TextField {
             id: timeField
-            placeholderText: "ЧЧ:ММ"
-            inputMask: "99:99"
-            Layout.fillWidth: true
-            height: 25
+            inputMask: "00:00; "
+            Layout.preferredWidth: 60  // Фиксированная ширина
+            Layout.fillWidth: false
+            height: 50
             font {
                 family: "Jost"
-                pixelSize: 13
+                pixelSize: 13 + ThemeManager.additionalSize
+            }
+            text: "00:00"
+            color: ThemeManager.fontColor
+            leftPadding: 5
+            rightPadding: 5
+            topPadding: 15
+            bottomPadding: 15
+
+            background: Rectangle {
+                color: ThemeManager.backgroundColor
+                border.width: 1
+                border.color: ThemeManager.fontColor
+                radius: 4
             }
 
-            onTextChanged: {
-                if (text.length === 6) {
-                    var parts = text.split(':');
-                    var hours = parseInt(parts[0], 10);
-                    var minutes = parseInt(parts[1], 10);
+            property bool valid: false
 
-                    if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
-                        color = "black"; // Валидное время
-                    } else {
-                        color = "red"; // Невалидное время
+            onTextChanged: {
+                if (text.length === 5) {
+                    var parts = text.split(':')
+                    if (parts.length !== 2) {
+                        valid = false
+                        return
                     }
+
+                    var hours = parseInt(parts[0], 10)
+                    var minutes = parseInt(parts[1], 10)
+                    valid = !isNaN(hours) && !isNaN(minutes) &&
+                             hours >= 0 && hours <= 23 &&
+                             minutes >= 0 && minutes <= 59
                 } else {
-                    color = "black"; // Неполный ввод
+                    valid = text.length === 0 // Считаем пустое поле валидным
+                }
+
+                color = valid ? ThemeManager.fontColor : "red"
+                if (valid && text.length === 5) {
+                    // Обновляем время в datePicker только при валидном значении
+                    datePicker.timeSelected = text
                 }
             }
         }

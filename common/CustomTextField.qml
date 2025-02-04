@@ -3,17 +3,21 @@ import QtQuick.Controls
 
 TextField {
     id: root
-    property color backgroundColor: "transparent"
-    property color borderColor: "black"
+    property color backgroundColor: ThemeManager.backgroundColor
+    property color borderColor: ThemeManager.isDarkTheme ? "white" : "black"
     property color borderFocusedColor: "blue"
     property int borderWidth: 1
     property string placeholderTextLabel: "label"
+    leftPadding: 0
+    rightPadding: 0
+    padding: 0
 
     background: Rectangle {
         color: root.backgroundColor
         Rectangle {
             anchors.bottom: parent.bottom
-            width: parent.width
+            anchors.left: parent.left    // добавляем привязку слева
+            anchors.right: parent.right  // добавляем привязку справа
             height: root.borderWidth
             color: root.activeFocus ? root.borderFocusedColor : root.borderColor
 
@@ -23,9 +27,9 @@ TextField {
         }
     }
 
-    color: "black";
+    color: ThemeManager.isDarkTheme ? "white" : "black";
     selectionColor: "lightblue"
-    selectedTextColor: "white"
+    selectedTextColor: ThemeManager.isDarkTheme ? "black" : "white"
     Label {
         id: placeholderLabel
         text: root.placeholderTextLabel
@@ -37,10 +41,10 @@ TextField {
         }
         font {
             family: "Jost"
-            pixelSize: 16
+            pixelSize: 16 + ThemeManager.additionalSize
             bold: true
         }
-
+        color: ThemeManager.isDarkTheme ? "white" : "black"
         transform: Translate {
             id: placeholderTranslate
         }
@@ -56,7 +60,7 @@ TextField {
                 }
                 PropertyChanges {
                     target: placeholderLabel
-                    font.pixelSize: 10
+                    font.pixelSize: 10 + ThemeManager.additionalSize
                 }
             }
         ]

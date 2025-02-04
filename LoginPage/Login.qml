@@ -6,10 +6,16 @@ Page {
     id: login
     anchors.top: parent.top
     anchors.topMargin: 20
+
+    background: Rectangle {
+        color: ThemeManager.backgroundColor
+    }
+
     header: ToolBar {
         height: 40
         background: null
         Text {
+            id: headerLogin
             anchors.centerIn: parent
             text: qsTr("Авторизация")
             font {
@@ -26,10 +32,24 @@ Page {
         borderWidth: 0
     }
 
+    Connections {
+        target: translator
+        function onLanguageChanged() {
+            headerLogin.text = qsTr("Авторизация")
+            loginRect.placeholderTextLabel = qsTr("Логин")
+            passRect.placeholderTextLabel = qsTr("Пароль")
+            refSignup.text = qsTr("Еще не зарегистрированы? Cюда.")
+            inBtn.text = qsTr("Войти")
+
+            errorPopup.textPopup = qsTr("Пожалуйста, заполните все поля");
+        }
+    }
+
     function handleClientMessage(message) {
         if(message != undefined && message["success"]) {
             console.log("Успешная регистрация/авторизация: " + message["userId"]);
-            login.StackView.view.push("../HomePage/Home.qml", { userId: parseInt(message["userId"]) })
+            login.StackView.view.push("../HomePage/Home.qml", { userId: parseInt(message["userId"]),
+                                      userName: message["username"], userImage: message["source"], userEmail: message["email"] });
         } else {
             errorPopup.textPopup = message["error"];
             errorPopup.open();
@@ -46,10 +66,10 @@ Page {
             anchors.left: parent.left
             width: parent.width
             height: 40
-            placeholderTextLabel: "Логин"
+            placeholderTextLabel: qsTr("Логин")
             font {
                 family: "Jost"
-                pixelSize: 18
+                pixelSize: 18 + ThemeManager.additionalSize
             }
         }
         CustomTextField {
@@ -58,10 +78,10 @@ Page {
             anchors.topMargin: 40
             width: parent.width
             height: 40
-            placeholderTextLabel: "Пароль"
+            placeholderTextLabel: qsTr("Пароль")
             font {
                 family: "Jost"
-                pixelSize: 18
+                pixelSize: 18 + ThemeManager.additionalSize
             }
         }
         Text {
@@ -70,11 +90,11 @@ Page {
             anchors.topMargin: 32
             anchors.horizontalCenter: parent.horizontalCenter
 
-            text: "Еще не зарегистрированы? Cюда."
+            text: qsTr("Еще не зарегистрированы? Cюда.")
 
             font {
                 family: "Jost"
-                pixelSize: 16
+                pixelSize: 16 + ThemeManager.additionalSize
             }
 
             MouseArea {
@@ -100,15 +120,15 @@ Page {
             width: parent.width
             height: 50
 
-            text: "Войти"
-            font.pixelSize: 18
+            text: qsTr("Войти")
+            font.pixelSize: 18 + ThemeManager.additionalSize
             borderRadius: 17
             backHoverColor: "lightcyan"
             borderWidth: 1
 
             onClicked: {
                 if(loginRect.text.length === 0 || passRect.text === 0) {
-                    errorPopup.textPopup = "Пожалуйста, заполните все поля";
+                    errorPopup.textPopup = qsTr("Пожалуйста, заполните все поля");
                     errorPopup.open();
                     return;
                 }

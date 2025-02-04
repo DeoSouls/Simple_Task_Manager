@@ -26,6 +26,8 @@ QVariant TasksModel::data(const QModelIndex &index, int role) const {
         return task.dueTime;
     case SpaceIdRole:
         return task.spaceId;
+    case TaskIdRole:
+        return task.taskId;
     default:
         return QVariant();
     }
@@ -39,6 +41,7 @@ QHash<int, QByteArray> TasksModel::roleNames() const {
     roles[CreateTimeRole] = "createTime";
     roles[DueTimeRole] = "dueTime";
     roles[SpaceIdRole] = "spaceId";
+    roles[TaskIdRole] = "taskId";
     return roles;
 }
 
@@ -52,13 +55,20 @@ void TasksModel::updateFromJson(const QJsonArray &data) {
                         obj["status"].toString(),
                         obj["createTime"].toString(),
                         obj["dueTime"].toString(),
-                        obj["spaceId"].toInt()});
+                        obj["spaceId"].toInt(),
+                        obj["taskId"].toInt()});
     }
     endResetModel();
 }
 
-void TasksModel::addTask(const QString &title, const QString &description, const QString &status, const QString& createTime, const QString& dueTime, int spaceId) {
+void TasksModel::removeTask(int row) {
+    beginRemoveRows(QModelIndex(), row, row);
+    m_tasks.remove(row);
+    endRemoveRows();
+}
+
+void TasksModel::addTask(const QString &title, const QString &description, const QString &status, const QString& createTime, const QString& dueTime, int spaceId, int taskId) {
     beginInsertRows(QModelIndex(), m_tasks.size(), m_tasks.size());
-    m_tasks.append({title, description, status, createTime, dueTime, spaceId});
+    m_tasks.append({title, description, status, createTime, dueTime, spaceId, taskId});
     endInsertRows();
 }

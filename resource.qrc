@@ -17,6 +17,22 @@
         <file>images/plus.png</file>
         <file>images/taskMenu.png</file>
         <file>images/add.png</file>
+        <file>images/trash.png</file>
+        <file>images/profile.png</file>
+        <file>images/homeWhite.png</file>
+        <file>images/leftWhite.png</file>
+        <file>images/menuWhite.png</file>
+        <file>images/plusWhite.png</file>
+        <file>images/rightBlack.png</file>
+        <file>images/searchWhite.png</file>
+        <file>images/settingsWhite.png</file>
+        <file>images/trashWhite.png</file>
+        <file>images/nstar_black.png</file>
+        <file>images/nstar_white.png</file>
+        <file>images/profileBlack.png</file>
+        <file>images/profileWhite.png</file>
+        <file>images/star_black.png</file>
+        <file>images/star_white.png</file>
     </qresource>
     <qresource prefix="/fonts">
         <file>fonts/Jost/static/Jost-Regular.ttf</file>

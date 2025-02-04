@@ -43,6 +43,30 @@ void Client::sendLoginData(const QString& username, const QString& password) {
     }
 }
 
+void Client::updateUserData(const QString& username, const QString& email, const QString& password, int userId, const QString& source) {
+    if (socket->state() == QAbstractSocket::ConnectedState) {
+        QJsonObject reqObj;
+        reqObj["endpoint"] = "update_user";
+        reqObj["userId"] = userId;
+        reqObj["username"] = username;
+        reqObj["email"] = email;
+        reqObj["password"] = password;
+        reqObj["source"] = source;
+
+        QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
+
+        socket->write(jsonData);
+        socket->flush();
+        if (!socket->waitForBytesWritten(3000)) {
+            qDebug() << "Ошибка отправки данных:" << socket->errorString();
+        } else {
+            qDebug() << "Данные отправлены:" << jsonData;
+        }
+    } else {
+        qDebug() << "Сокет не подключен!";
+    }
+}
+
 void Client::sendRegisterData(const QString& username, const QString& email, const QString& password) {
     if (socket->state() == QAbstractSocket::ConnectedState) {
         QJsonObject reqObj;
@@ -106,6 +130,26 @@ void Client::getSpaces(int userId) {
     }
 }
 
+void Client::deleteSpace(int spaceId) {
+    if (socket->state() == QAbstractSocket::ConnectedState) {
+        QJsonObject reqObj;
+        reqObj["endpoint"] = "delete_space";
+        reqObj["spaceId"] = spaceId;
+
+        QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
+
+        socket->write(jsonData);
+        socket->flush();
+        if (!socket->waitForBytesWritten(3000)) {
+            qDebug() << "Ошибка отправки данных:" << socket->errorString();
+        } else {
+            qDebug() << "Данные отправлены:" << jsonData;
+        }
+    } else {
+        qDebug() << "Сокет не подключен!";
+    }
+}
+
 void Client::createTask(const QString& title, const QString& description, const QString& status, const QString& due_time, int spaceId) {
     if (socket->state() == QAbstractSocket::ConnectedState) {
         QJsonObject reqObj;
@@ -135,6 +179,50 @@ void Client::getTasks(int spaceId) {
         QJsonObject reqObj;
         reqObj["endpoint"] = "tasks";
         reqObj["spaceId"] = spaceId;
+
+        QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
+
+        socket->write(jsonData);
+        socket->flush();
+        if (!socket->waitForBytesWritten(3000)) {
+            qDebug() << "Ошибка отправки данных:" << socket->errorString();
+        } else {
+            qDebug() << "Данные отправлены:" << jsonData;
+        }
+    } else {
+        qDebug() << "Сокет не подключен!";
+    }
+}
+
+void Client::updateTask(int taskId, const QString& title, const QString& description, const QString& dueTime, const QString& status) {
+    if (socket->state() == QAbstractSocket::ConnectedState) {
+        QJsonObject reqObj;
+        reqObj["endpoint"] = "update_task";
+        reqObj["taskId"] = taskId;
+        reqObj["title"] = title;
+        reqObj["description"] = description;
+        reqObj["dueTime"] = dueTime;
+        reqObj["status"] = status;
+
+        QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
+
+        socket->write(jsonData);
+        socket->flush();
+        if (!socket->waitForBytesWritten(3000)) {
+            qDebug() << "Ошибка отправки данных:" << socket->errorString();
+        } else {
+            qDebug() << "Данные отправлены:" << jsonData;
+        }
+    } else {
+        qDebug() << "Сокет не подключен!";
+    }
+}
+
+void Client::deleteTask(int taskId) {
+    if (socket->state() == QAbstractSocket::ConnectedState) {
+        QJsonObject reqObj;
+        reqObj["endpoint"] = "delete_task";
+        reqObj["taskId"] = taskId;
 
         QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
 

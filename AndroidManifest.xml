@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.appsimpletaskmanager"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+    <!-- Минимальная версия Android -->
+    <uses-sdk
+        android:minSdkVersion="23"
+        android:targetSdkVersion="34" />  <!-- Android 14 -->
+
+    <!-- Разрешение на уведомления (для Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <application
+        android:name="org.qtproject.qt.android.bindings.QtApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="SimpleTaskManager"
+        android:requestLegacyExternalStorage="true"
+        android:theme="@style/AppTheme">
+
+        <!-- Главная активность Qt -->
+        <activity
+            android:name="org.qtproject.qt.android.bindings.QtActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="SimpleTaskManager"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Метка для уведомлений (опционально) -->
+            <meta-data
+                android:name="android.app.notification_channel_id"
+                android:value="QT_CHANNEL" />  <!-- ID канала из Java-кода -->
+        </activity>
+
+        <!-- Декларация канала уведомлений (для Android 8.0+) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="QT_CHANNEL" />
+
+    </application>
+</manifest>

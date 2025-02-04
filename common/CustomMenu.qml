@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../common"
 
 Drawer {
     id: menuDrawer
@@ -10,33 +11,47 @@ Drawer {
     property var currentPage: null
     property var initialSpaces: null
 
+    property string headerHome: qsTr("Дом")
+    property string userName: ""
+    property string userEmail: ""
+    property string userImage: ""
+
     width: parent.width * 0.9
     height: parent.height
     edge: Qt.LeftEdge
     background: Rectangle {
-        color: "white"
+        color: ThemeManager.isDarkTheme ? "#282829" : "white"
     }
 
-    // Component.onCompleted: {
-    //     if(menuDrawer.userId !== 0) {
-    //         client.getSpaces(menuDrawer.userId);
-    //     }
-    // }
+    Connections {
+        target: translator
+        function onLanguageChanged() {
+            searchMenu.placeholderTextLabel = qsTr("Поиск")
+            favoriteTab.headerTab = qsTr("Фавориты")
+            spacesTab.headerTab = qsTr("Пространства")
+            menuDrawer.headerHome = qsTr("Дом")
+        }
+    }
 
     Popup {
         id: dialogWindow
         anchors.centerIn: parent
-        width: 200
-        height: 150
+        width: 300
+        height: 200
+        background: Rectangle {
+            color: ThemeManager.isDarkTheme ? "#3b3b3b" : "#f0f0f0"
+            radius: 5
+        }
+
         contentItem: Column {
             anchors.fill: parent
             Text {
                 width: parent.width
-                text: "Придумайте название для своего пространства (название должно быть уникальным)"
-                color: "black"
+                text: qsTr("Придумайте название для своего пространства (название должно быть уникальным)")
+                color: ThemeManager.isDarkTheme ? "white" : "black"
                 font {
                     family: "Jost"
-                    pixelSize: 15
+                    pixelSize: 15 + ThemeManager.additionalSize
                 }
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
@@ -51,7 +66,7 @@ Drawer {
                 height: 40
                 font {
                     family: "Jost"
-                    pixelSize: 18
+                    pixelSize: 18 + ThemeManager.additionalSize
                 }
             }
         }
@@ -60,6 +75,17 @@ Drawer {
                 client.createSpace(spaceText.text, menuDrawer.userId);
                 spaceText.clear();
             }
+        }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        // Обрабатываем клик вне TextField
+        onClicked: {
+            // Снимаем фокус с TextField
+            searchMenu.focus = false
+            // Передаём фокус самому контейнеру, чтобы TextField точно его потерял
+            parent.forceActiveFocus()
         }
     }
 
@@ -73,7 +99,10 @@ Drawer {
             topMargin: 23
             leftMargin: 16
         }
-        placeholderTextLabel: "Поиск"
+        placeholderTextLabel: qsTr("Поиск")
+        onTextChanged: {
+            menuDrawer.container.updateSearch(searchMenu.text);
+        }
     }
 
     CustomButton {
@@ -82,7 +111,6 @@ Drawer {
         borderWidth: 0
         borderRadius: 25
         hoverEnabled: false
-        backColor: "transparent"
 
         anchors {
             top: parent.top
@@ -98,9 +126,9 @@ Drawer {
 
         Image {
             anchors.centerIn: parent
-            width: 25
-            height: 25
-            source: "qrc:/new/images/settings.png"
+            width: 30
+            height: 30
+            source: ThemeManager.isDarkTheme ? "qrc:/new/images/settingsWhite.png" : "qrc:/new/images/settings.png"
         }
     }
     ColumnLayout {
@@ -110,11 +138,13 @@ Drawer {
         anchors.topMargin: 10
         Layout.alignment: Qt.AlignTop
         spacing: 0
+
         Tab {
             id: homeTab
             Layout.fillWidth: true
             Layout.preferredHeight: 45
             Layout.alignment: Qt.AlignTop
+            headerTab: menuDrawer.headerHome
             Image {
                 id: imgHomeTab
                 width: 24
@@ -124,10 +154,13 @@ Drawer {
                     leftMargin: 16
                     verticalCenter: parent.verticalCenter
                 }
-                source: "qrc:/new/images/home.png"
+                source: ThemeManager.isDarkTheme ? "qrc:/new/images/homeWhite.png" : "qrc:/new/images/home.png"
             }
             mouse.onClicked: {
-                currentPage.StackView.view.push("../HomePage/Home.qml", { userId: menuDrawer.userId })
+                currentPage.StackView.view.push("../HomePage/Home.qml", { userId: menuDrawer.userId,
+                                                    userName: menuDrawer.userName, userImage: menuDrawer.userImage,
+                                                    userEmail: menuDrawer.userEmail });
+                menuDrawer.close();
             }
         }
         Tab {
@@ -136,7 +169,7 @@ Drawer {
             Layout.preferredHeight: 45
             Layout.alignment: Qt.AlignTop
 
-            headerTab: "Фавориты"
+            headerTab: qsTr("Фавориты")
             isTabs: true
             leftMarginText: 16
         }
@@ -144,11 +177,14 @@ Drawer {
             id: spacesTab
             Layout.fillWidth: true
             Layout.preferredHeight: 45
-            initialSpaces: menuDrawer.initialSpaces
+            spacesArray: menuDrawer.initialSpaces
             Layout.alignment: Qt.AlignTop
-            headerTab: "Пространства"
+            headerTab: qsTr("Пространства")
             refsPage: menuDrawer.currentPage
             refsMenu: menuDrawer
+            userName: menuDrawer.userName
+            userEmail: menuDrawer.userEmail
+            userImage: menuDrawer.userImage
             leftMarginText: 16
             isTabs: true
 
@@ -174,32 +210,7 @@ Drawer {
                     anchors.centerIn: parent
                     width: 24
                     height: 24
-                    source: "qrc:/new/images/plus.png"
-                }
-            }
-            CustomButton {
-                id: searchTab
-                width: 20
-                height: 20
-                borderWidth: 0
-                borderRadius: 10
-                hoverEnabled: false
-                backColor: "transparent"
-                anchors {
-                    right: parent.right
-                    rightMargin: 75
-                    verticalCenter: parent.verticalCenter
-                }
-                onClicked: {
-
-                    // menuDrawer.open();
-                }
-
-                Image {
-                    anchors.centerIn: parent
-                    width: 15
-                    height: 15
-                    source: "qrc:/new/images/search.png"
+                    source: ThemeManager.isDarkTheme ? "qrc:/new/images/plusWhite.png" : "qrc:/new/images/plus.png"
                 }
             }
             mouse.onClicked: {
@@ -207,6 +218,47 @@ Drawer {
                     client.getSpaces(menuDrawer.userId);
                 }
             }
+        }
+        function findTabsByPartialName(partialName, caseSensitive = false) {
+            const results = [];
+            const searchTerm = caseSensitive ? partialName : partialName.toLowerCase();
+
+            function search(root) {
+                for (let i = 0; i < root.children.length; ++i) {
+                    const child = root.children[i];
+                    // Проверяем, что свойство name существует и является строкой
+                    if (child && child.hasOwnProperty("headerTab") && typeof child.headerTab === "string"
+                            && child.headerTab !== "Дом" && child.headerTab !== "Пространства" && child.headerTab !== "Фавориты") {
+                        child.visible = false;
+                        const childName = caseSensitive ? child.headerTab : child.headerTab.toLowerCase();
+                        if (childName.includes(searchTerm)) {
+                            results.push(child);
+                            child.visible = true;
+                        }
+                    }
+
+                    // Рекурсивный поиск во вложенных элементах
+                    if (child.children && child.children.length > 0) {
+                        search(child);
+                    }
+                }
+            }
+            search(tabsContainer);
+            return results;
+        }
+
+        function openVisibleTabs() {
+            function search(root) {
+                for (let i = 0; i < root.children.length; ++i) {
+                    const child = root.children[i];
+                    child.visible = true;
+
+                    if (child.children && child.children.length > 0) {
+                        search(child);
+                    }
+                }
+            }
+            search(tabsContainer);
         }
     }
 }

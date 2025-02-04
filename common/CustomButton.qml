@@ -6,16 +6,18 @@ import QtQuick.Controls.Material
 Button {
     id: root
 
-    property color backColor: "white"
+    property color backColor: "transparent"
     property color backHoverColor: "#444"
-    property color borderColor: "black"
+    property color borderColor: ThemeManager.isDarkTheme ? "white" : "black"
     property int borderWidth: 0
     property int borderRadius: 10
     property bool layerEnabled: false
+    property alias rectButton: buttonRect
 
     Material.elevation: 0
 
     background: Rectangle {
+        id: buttonRect
         color: root.hovered ? root.backHoverColor : root.backColor
         border.color: root.borderColor
         border.width: root.borderWidth
@@ -33,7 +35,15 @@ Button {
         }
     }
 
-    font.family: "Jost"
+    contentItem: Text {
+        text: parent.text
+        font.family: "Jost"
+        font.pixelSize: 16 + ThemeManager.additionalSize
+        color: ThemeManager.isDarkTheme ? "white" : "black"
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+    }
+
     onPressed: {
         jump.start()
     }

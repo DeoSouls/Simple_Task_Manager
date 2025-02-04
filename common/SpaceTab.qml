@@ -3,7 +3,7 @@ import QtQuick.Controls
 
 Rectangle {
     id: root
-    color: "white"
+    color: ThemeManager.isDarkTheme ? "#3b3b3b" : "white"
     Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
@@ -11,23 +11,15 @@ Rectangle {
         color: "#E5E5E5"
     }
 
-    property string headerTab: "Дом"
+    property string headerTab: ""
     property int leftMarginText: 51
     property int spaceId: 0
-    // property alias mouseTab: mouseArea
-
-    // MouseArea {
-    //     id: mouseArea
-    //     anchors.fill: parent
-    //     onClicked: {
-    //         root.focus = true;
-    //     }
-    // }
 
     Label {
+        width: 200
         font {
             family: "Jost"
-            pixelSize: 18
+            pixelSize: 18 + ThemeManager.additionalSize
         }
         anchors {
             left: parent.left
@@ -35,5 +27,7 @@ Rectangle {
             verticalCenter: parent.verticalCenter
         }
         text: root.headerTab
+        color: ThemeManager.fontColor
+        elide: Text.ElideRight
     }
 }

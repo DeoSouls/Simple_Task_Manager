@@ -10,10 +10,17 @@ Page {
     property string spacename: "Space"
     property int spaceId: 0
     property int userId: 0
-    property var initialSpaces: null
+    property string userName: ""
+    property string userImage: ""
+    property string userEmail: ""
+    property var spacesArray: []
 
     anchors.top: parent.top
     anchors.topMargin: 20
+
+    background: Rectangle {
+        color: ThemeManager.backgroundColor
+    }
 
     ErrorPopup {
         id: errorPopup
@@ -32,18 +39,24 @@ Page {
         tasksModel: tasksModel
     }
 
+    function updateData(spaceId) {
+        client.getTasks(spaceId);
+    }
+
     function handleClientMessage(message) {
         if(message["type"] === "get_tasks" && message["success"]) {
             console.log("Получены таски");
             tasksModel.updateFromJson(message["data"]);
+        } else if(message["type"] === "deleted_task" && message["success"]) {
+            console.log("Таск удален" + message["taskId"]);
         } else if(message["type"] === "created_task" && message["success"]) {
             console.log("Создан таск id: "+ message["taskId"]);
+            tasksModel.addTask(message["title"], message["description"],
+                                     message["status"], message["createTime"], message["dueTime"], message["spaceId"], message["taskId"]);
         } else if(message != undefined && message["success"]) {
             console.log("Создано пространство id: "+ message["spaceId"]);
             menuDrawer.container.createObjectFromString(message["spaceId"],
-                                                           message["spacename"],
-                                                           StackView.view,
-                                                           menuDrawer);
+                                                           message["spacename"]);
             if (!Array.isArray(menuDrawer.initialSpaces)) {
                 menuDrawer.initialSpaces = [];
             }
@@ -59,14 +72,17 @@ Page {
 
     function reformateDate(dateString) {
         var date = new Date(dateString)
-        return Qt.formatDateTime(date, "dd-MM-yyyy")
+        return Qt.formatDateTime(date, "dd.MM.yyyy")
     }
 
     CustomMenu {
         id: menuDrawer
         userId: space.userId
+        userName: space.userName
+        userEmail: space.userEmail
+        userImage: space.userImage
         currentPage: space
-        initialSpaces: space.initialSpaces
+        initialSpaces: space.spacesArray
     }
 
     Component.onCompleted: {
@@ -87,7 +103,7 @@ Page {
             borderRadius: 24
             hoverEnabled: false
 
-            backColor: "transparent"
+            backColor: ThemeManager.backgroundColor
 
             anchors {
                 left: parent.left
@@ -103,7 +119,7 @@ Page {
                 anchors.centerIn: parent
                 width: 24
                 height: 24
-                source: "qrc:/new/images/menu.png"
+                source: ThemeManager.isDarkTheme ? "qrc:/new/images/menuWhite.png" : "qrc:/new/images/menu.png"
             }
         }
         Text {
@@ -111,7 +127,53 @@ Page {
             text: space.spacename
             font {
                 family: "Jost"
-                pixelSize: 18
+                pixelSize: 18 + ThemeManager.additionalSize
+            }
+            color: ThemeManager.fontColor
+            elide: Qt.ElideRight
+        }
+        CustomButton {
+            id: toAddFavorite
+            width: 48
+            height: 48
+
+            property bool isFavorite: false
+
+            borderWidth: 0
+            borderRadius: 24
+            hoverEnabled: false
+
+            backColor: ThemeManager.backgroundColor
+
+            anchors {
+                right: parent.right
+                rightMargin: 50
+                verticalCenter: parent.verticalCenter
+            }
+
+            states: [
+                State {
+                    name: "favorite"
+                    when: toAddFavorite.isFavorite
+                    PropertyChanges {
+                        target: starImg
+                        source: ThemeManager.isDarkTheme ? "qrc:/new/images/star_white.png" : "qrc:/new/images/star_black.png"
+                    }
+                }
+            ]
+
+
+            onClicked: {
+                toAddFavorite.isFavorite = !toAddFavorite.isFavorite
+                // createForm.open();
+            }
+
+            Image {
+                id: starImg
+                anchors.centerIn: parent
+                width: 25
+                height: 25
+                source: ThemeManager.isDarkTheme ? "qrc:/new/images/nstar_white.png" : "qrc:/new/images/nstar_black.png"
             }
         }
         CustomButton {
@@ -123,7 +185,7 @@ Page {
             borderRadius: 24
             hoverEnabled: false
 
-            backColor: "transparent"
+            backColor: ThemeManager.backgroundColor
 
             anchors {
                 right: parent.right
@@ -139,14 +201,14 @@ Page {
                 anchors.centerIn: parent
                 width: 30
                 height: 30
-                source: "qrc:/new/images/plus.png"
+                source: ThemeManager.isDarkTheme ? "qrc:/new/images/plusWhite.png" : "qrc:/new/images/plus.png"
             }
         }
     }
     Flickable {
         id: nameColumns
         width: 343
-        height: 453
+        height: 500
         anchors.top: parent.top
         anchors.topMargin: 20
         anchors.horizontalCenter: parent.horizontalCenter
@@ -156,7 +218,7 @@ Page {
         clip: true
         Rectangle {
             width: 320 * 3
-            height: 400 // Увеличиваем высоту для возможности вертикальной прокрутки
+            height: 400
             color: "transparent" // Делаем фон прозрачным
             Rectangle {
                 id: columnsRect
@@ -164,8 +226,8 @@ Page {
                 width: parent.width
                 height: 30
                 anchors.top: parent.top
-                Rectangle {width: parent.width; height: 1; anchors.top: parent.top; color: "black";}
-                Rectangle {width: 1; height: parent.height; anchors.left: parent.left; color: "black";}
+                Rectangle {width: parent.width; height: 1; anchors.top: parent.top; color: ThemeManager.isDarkTheme ? "white" : "black";}
+                Rectangle {width: 1; height: parent.height; anchors.left: parent.left; color: ThemeManager.isDarkTheme ? "white" : "black";}
                 Row {
                     width: parent.width
                     Repeater {
@@ -178,34 +240,52 @@ Page {
                                 anchors.centerIn: parent
                                 font {
                                     family: "Jost"
-                                    pixelSize: 16
+                                    pixelSize: 16 + ThemeManager.additionalSize
                                 }
                                 text: modelData
+                                color: ThemeManager.fontColor
                             }
-                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: "black";}
+                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: ThemeManager.isDarkTheme ? "white" : "black";}
                         }
                     }
                 }
-                Rectangle {width: parent.width; height: 1; anchors.bottom: parent.bottom; color: "black";}
+                Rectangle {width: parent.width; height: 1; anchors.bottom: parent.bottom; color: ThemeManager.isDarkTheme ? "white" : "black";}
             }
             // Здесь можно добавить дополнительное содержимое
             ListView {
+                id: contentRect
                 anchors.top: columnsRect.bottom
                 anchors.bottom: parent.bottom
                 width: parent.width
                 model: tasksModel
                 delegate: Rectangle {
                     width: parent.width
-                    height: 45
+                    height: 55
                     color: "transparent"
-                    Rectangle {width: 1; height: parent.height; anchors.left: parent.left; color: "black";}
+                    MouseArea {
+                        id: toDescriptionTask
+                        anchors.fill: parent
+                        onClicked: {
+                            console.log("to Task "+ model.taskId);
+                            space.StackView.view.push(Qt.resolvedUrl("../TaskPage/Task.qml"), {
+                                taskId: model.taskId,
+                                titleTask: model.title,
+                                descriptionTask: model.description,
+                                dueTimeTask: model.dueTime,
+                                statusTask: model.status,
+                                spaceId: space.spaceId,
+                                pastPage: space
+                            });
+                        }
+                    }
+                    Rectangle {width: 1; height: parent.height; anchors.left: parent.left; color: ThemeManager.isDarkTheme ? "white" : "black";}
                     Row {
                         anchors.top: parent.top
                         width: parent.width
-                        height: 45
+                        height: 55
                         Rectangle {
                             width: parent.width / 5
-                            height: 45
+                            height: 55
                             color: "transparent"
                             clip: true
                             Rectangle {
@@ -231,21 +311,23 @@ Page {
 
                             Text {
                                 anchors.fill: parent  // Заполняет всё доступное пространство родителя
+                                padding: 5
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
-                                padding: 5
                                 font {
                                     family: "Jost"
-                                    pixelSize: 16
+                                    pixelSize: 16 + ThemeManager.additionalSize
                                 }
                                 wrapMode: Text.WordWrap
                                 text: model.title
+                                color: ThemeManager.fontColor
+                                elide: Text.ElideRight
                             }
-                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: "black";}
+                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: ThemeManager.isDarkTheme ? "white" : "black";}
                         }
                         Rectangle {
                             width: parent.width / 5
-                            height: 45
+                            height: 55
                             color: "transparent"
                             Text {
                                 anchors.fill: parent  // Заполняет всё доступное пространство родителя
@@ -253,32 +335,34 @@ Page {
                                 verticalAlignment: Text.AlignVCenter
                                 font {
                                     family: "Jost"
-                                    pixelSize: 14
+                                    pixelSize: 14 + ThemeManager.additionalSize
                                 }
                                 wrapMode: Text.WrapAnywhere
                                 text: model.description
                                 elide: Text.ElideRight
+                                color: ThemeManager.fontColor
                             }
-                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: "black";}
+                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: ThemeManager.isDarkTheme ? "white" : "black";}
                         }
                         Rectangle {
                             width: parent.width / 5
-                            height: 45
+                            height: 55
                             color: "transparent"
                             Text {
                                 anchors.centerIn: parent
                                 font {
                                     family: "Jost"
-                                    pixelSize: 16
+                                    pixelSize: 16 + ThemeManager.additionalSize
                                 }
                                 wrapMode: Text.WordWrap
                                 text: model.status
+                                color: ThemeManager.fontColor
                             }
-                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: "black";}
+                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: ThemeManager.isDarkTheme ? "white" : "black";}
                         }
                         Rectangle {
                             width: parent.width / 5
-                            height: 45
+                            height: 55
                             color: "transparent"
                             Text {
                                 anchors.fill: parent  // Заполняет всё доступное пространство родителя
@@ -286,16 +370,17 @@ Page {
                                 verticalAlignment: Text.AlignVCenter
                                 font {
                                     family: "Jost"
-                                    pixelSize: 15
+                                    pixelSize: 15 + ThemeManager.additionalSize
                                 }
                                 wrapMode: Text.WordWrap
                                 text: space.reformateDate(model.createTime)
+                                color: ThemeManager.fontColor
                             }
-                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: "black";}
+                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: ThemeManager.isDarkTheme ? "white" : "black";}
                         }
                         Rectangle {
                             width: parent.width / 5
-                            height: 45
+                            height: 55
                             color: "transparent"
                             Text {
                                 anchors.fill: parent  // Заполняет всё доступное пространство родителя
@@ -303,15 +388,43 @@ Page {
                                 verticalAlignment: Text.AlignVCenter
                                 font {
                                     family: "Jost"
-                                    pixelSize: 15
+                                    pixelSize: 15 + ThemeManager.additionalSize
                                 }
                                 wrapMode: Text.WordWrap
                                 text: space.reformateDate(model.dueTime)
+                                color: ThemeManager.fontColor
                             }
-                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: "black";}
+
+                            CustomButton {
+                                width: 40
+                                height: 40
+                                borderWidth: 0
+                                borderRadius: 20
+                                hoverEnabled: false
+                                backColor: "transparent"
+                                anchors {
+                                    right: parent.right
+                                    rightMargin: 7
+                                    verticalCenter: parent.verticalCenter
+                                }
+
+                                onClicked: {
+                                    client.deleteTask(model.taskId);
+                                    tasksModel.removeTask(index);
+                                }
+
+                                Image {
+                                    anchors.centerIn: parent
+                                    width: 20
+                                    height: 20
+                                    source: ThemeManager.isDarkTheme ? "qrc:/new/images/trashWhite.png" : "qrc:/new/images/trash.png"
+                                }
+                            }
+
+                            Rectangle {width: 1; height: parent.height; anchors.right: parent.right; color: ThemeManager.isDarkTheme ? "white" : "black";}
                         }
                     }
-                    Rectangle {width: parent.width; height: 1; anchors.bottom: parent.bottom; color: "black";}
+                    Rectangle {width: parent.width; height: 1; anchors.bottom: parent.bottom; color: ThemeManager.isDarkTheme ? "white" : "black";}
                 }
             }
         }

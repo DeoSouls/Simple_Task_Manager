@@ -1,13 +1,21 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include "../server/taskmanagerserver.h"
+#include "tasksmodel.h"
+#include "spacemodel.h"
+#include "translator.h"
+#include "client.h"
+#include "notificationclient.h"
+#include "imagetobytearray.h"
 #include <QMessageBox>
 #include <QtSql/QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QFontDatabase>
-#include "client.h"
-#include "tasksmodel.h"
+#include <QStandardPaths>
+#include <QQmlContext>
+#include <QFile>
+#include <QDir>
 
 bool connectToDatabase(const QString &dbPath) {
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE"); // Указываем драйвер SQLite
@@ -70,7 +78,7 @@ int main(int argc, char *argv[]) {
     // qDebug() << "Available drivers:" << QSqlDatabase::drivers();
 
     QSqlDatabase defaultDB = QSqlDatabase::addDatabase("QSQLITE", "MASTER_CONNECTION"); // Указываем драйвер SQLite
-    defaultDB.setDatabaseName("sTaskManager.db"); // Путь к файлу базы данных
+    defaultDB.setDatabaseName("taskManager.db"); // Путь к файлу базы данных
 
     if (!defaultDB.open()) {
         qDebug() << "Error: Unable to connect to database:" << defaultDB.lastError().text();
@@ -78,7 +86,7 @@ int main(int argc, char *argv[]) {
     }
 
     QSqlQuery query(defaultDB);
-    // if (query.exec("DROP TABLE IF EXISTS spaces")) {
+    // if (query.exec("DROP TABLE IF EXISTS users")) {
     //     qDebug() << "Таблица успешно удалена";
     // } else {
     //     qDebug() << "Ошибка удаления таблицы" << query.lastError();
@@ -95,8 +103,16 @@ int main(int argc, char *argv[]) {
                "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                "username TEXT UNIQUE,"
                "password_hash TEXT,"
+               "source TEXT,"
                "email TEXT UNIQUE,"
                "created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+
+    query.exec("CREATE TABLE IF NOT EXISTS images ("
+               "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+               "source TEXT UNIQUE,"
+               "user_id INTEGER,"
+               "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+               "FOREIGN KEY (user_id) REFERENCES users(id)))");
 
     qDebug() << "Connected and created tables database successfully! " + defaultDB.databaseName();
 
@@ -109,8 +125,16 @@ int main(int argc, char *argv[]) {
         QMessageBox::critical(nullptr, "Server connection failed", "Не удалось открыть соединение");
     }
 
+    Translator translator;
+
     qmlRegisterType<TasksModel>("com.tasksmodel.network", 1, 0, "TasksModel");
+    qmlRegisterType<SpaceModel>("com.spacemodel.network", 1, 0, "SpaceModel");
+    qmlRegisterType<ImageToByteArray>("image.converter", 1, 0, "ImageConverter");
+    // qmlRegisterType<NotificationClient>("notification", 1, 0, "NotificationClient");
+    qmlRegisterType<Translator>("com.translator", 1, 0, "Translator");
     qmlRegisterType<Client>("com.client.network", 1, 0, "Client");
+    qmlRegisterSingletonType(QUrl::fromLocalFile("C:/cpp/projectsQt/SimpleTaskManager/common/ThemeManager.qml"),
+                             "App", 1, 0, "ThemeManager");
     // import com.client.network 1.0
 
     QQmlApplicationEngine engine;
@@ -120,6 +144,7 @@ int main(int argc, char *argv[]) {
         &app,
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
+    engine.rootContext()->setContextProperty("translator", &translator);
     engine.loadFromModule("SimpleTaskManager", "Main");
 
     return app.exec();

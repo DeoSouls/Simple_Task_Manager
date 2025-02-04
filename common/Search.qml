@@ -5,9 +5,9 @@ import QtQuick.Controls.Material
 TextField {
     id: root
 
-    property color backColor: "#EFEFEF"
-    property color borderColor: "black"
-    property int borderWidth: 0
+    property color backColor: ThemeManager.isDarkTheme ? "#282829" : "#EFEFEF"
+    property color borderColor: ThemeManager.isDarkTheme ? "white" : "black"
+    property int borderWidth: ThemeManager.isDarkTheme ? 1 : 0
     property int borderRadius: 10
     property string placeholderTextLabel: "label"
 
@@ -20,8 +20,9 @@ TextField {
 
     font {
         family: "Jost"
-        pixelSize: 18
+        pixelSize: 18 + ThemeManager.additionalSize
     }
+    color: ThemeManager.isDarkTheme ? "white" : "black"
     leftPadding: 35
     verticalAlignment: TextInput.AlignVCenter
 
@@ -33,16 +34,27 @@ TextField {
             left: parent.left
             leftMargin: 9
         }
-        source: "qrc:/new/images/search.png"
+
+        MouseArea {
+            anchors.fill: parent
+            // Обрабатываем клик вне TextField
+            onClicked: {
+                // Снимаем фокус с TextField
+                root.focus = false
+                // Передаём фокус самому контейнеру, чтобы TextField точно его потерял
+                parent.forceActiveFocus()
+            }
+        }
+        source: ThemeManager.isDarkTheme ? "qrc:/new/images/searchWhite.png" : "qrc:/new/images/search.png"
     }
 
     Label {
         id: placeholderLabel
         text: root.placeholderTextLabel
-        color: "#524F4F"
+        color: ThemeManager.isDarkTheme ? "white" : "#524F4F"
         font {
             family: "Jost"
-            pixelSize: 18
+            pixelSize: 18 + ThemeManager.additionalSize
         }
 
         visible: true

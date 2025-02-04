@@ -1,10 +1,19 @@
 import QtQuick
 import QtQuick.Controls
+import "../common"
 
 Page {
     id: mainmenu
     anchors.top: parent.top
     anchors.topMargin: 20
+
+    Connections {
+        target: translator
+        function onLanguageChanged() {
+            textMenu.text = qsTr("Меню")
+        }
+    }
+
     header: ToolBar {
         height: 40
         background: null
@@ -44,11 +53,12 @@ Page {
         }
 
         Text {
+            id: textMenu
             anchors.centerIn: parent
             text: qsTr("Меню")
             font {
                 family: "Jost"
-                pixelSize: 18
+                pixelSize: 18 + ThemeManager.additionalSize
             }
         }
     }

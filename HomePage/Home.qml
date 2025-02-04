@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls 2.15
+import com.translator 1.0
 import "../common"
 
 Page {
@@ -10,6 +11,26 @@ Page {
     anchors.topMargin: 20
 
     property int userId: 0
+    property string userName: ""
+    property string userEmail: ""
+    property string userImage: ""
+
+    background: Rectangle {
+        color: ThemeManager.backgroundColor
+    }
+
+    Connections {
+        target: translator
+        function onLanguageChanged() {
+            homeHeader.text = qsTr("Дом")
+            hello_text.text = home.userName + ",\n"+qsTr("Добрый день!")
+            textForText.text = qsTr("10 задач на выполнении.")
+            placeholderLabel.text = qsTr("Поиск по проектам")+" ..."
+            currentSpace.text = qsTr("Текущие проекты")
+            seeAll.text = qsTr("Увидеть все")
+            progressText.text = qsTr("Прогресс")
+        }
+    }
 
     ErrorPopup {
         id: errorPopup
@@ -18,23 +39,44 @@ Page {
         borderWidth: 0
     }
 
+    ProfileEdit {
+        id: profile
+        userId: home.userId
+        userName: home.userName
+        email: home.userEmail
+        profileImage: home.userImage
+    }
+
     function handleClientMessage(message) {
-        if(message["type"] === "spaces" && message["success"]) {
+        if(message["type"] === "upd_user" && message["success"]) {
+            home.userName = message["username"];
+
+        } else if(message["type"] === "deleted_space" && message["success"]) {
+            client.getSpaces(home.userId);
+        } else if(message["type"] === "spaces" && message["success"]) {
             menuDrawer.initialSpaces = message["data"];
+            proj_listing.spacesArray = message["data"];
+
+            proj_listing.spaceModelList.updateFromJson(message["data"])
+            proj_listing.spaceModelFiltList.updateFromJson(message["data"])
         } else if(message != undefined && message["success"]) {
             console.log("Создано пространство id: "+ message["spaceId"]);
             menuDrawer.container.createObjectFromString(message["spaceId"],
-                                                           message["spacename"],
-                                                           StackView.view,
-                                                           menuDrawer);
-            if (!Array.isArray(menuDrawer.initialSpaces)) {
+                                                           message["spacename"]);
+
+            // if (!Array.isArray(menuDrawer.initialSpaces)) {
+            //     menuDrawer.initialSpaces = [];
+            // }
+            // menuDrawer.initialSpaces.push({
+            //     spaceId: message["spaceId"],
+            //     spacename: message["spacename"]
+            // });
+        } else {
+            if(message["none"]) {
+                console.log("Worked none!!!")
                 menuDrawer.initialSpaces = [];
             }
-            menuDrawer.initialSpaces.push({
-                spaceId: message["spaceId"],
-                spacename: message["spacename"]
-            });
-        } else {
+
             errorPopup.textPopup = message["error"];
             errorPopup.open();
         }
@@ -44,6 +86,13 @@ Page {
         id: menuDrawer
         userId: home.userId
         currentPage: home
+        userName: home.userName
+        userEmail: home.userEmail
+        userImage: home.userImage
+    }
+
+    Component.onCompleted: {
+        client.getSpaces(home.userId);
     }
 
     header: ToolBar {
@@ -51,13 +100,12 @@ Page {
         background: null
         CustomButton {
             id: toMainMenu
-            width: 48
-            height: 48
+            width: 30
+            height: 40
 
             borderWidth: 0
             borderRadius: 24
             hoverEnabled: false
-            backColor: "transparent"
 
             anchors {
                 left: parent.left
@@ -73,43 +121,45 @@ Page {
                 anchors.centerIn: parent
                 width: 24
                 height: 24
-                source: "qrc:/new/images/menu.png"
+                source: ThemeManager.isDarkTheme ? "qrc:/new/images/menuWhite.png" : "qrc:/new/images/menu.png"
             }
         }
         Text {
+            id: homeHeader
             anchors.centerIn: parent
             text: qsTr("Дом")
             font {
                 family: "Jost"
-                pixelSize: 18
+                pixelSize: 18 + ThemeManager.additionalSize
             }
+            color: ThemeManager.fontColor
         }
         CustomButton {
-            id: toSetting
-            width: 50
-            height: 50
+            id: toProfile
+            width: 30
+            height: 40
 
             borderWidth: 0
             borderRadius: 25
             hoverEnabled: false
-
-            backColor: "transparent"
-
+            backColor: ThemeManager.isDarkTheme ? "#f0f0f0" : "#0f111a"
             anchors {
                 right: parent.right
                 rightMargin: 10
                 verticalCenter: parent.verticalCenter
             }
-
             onClicked: {
-                home.StackView.view.push("../SettingsPage/Settings.qml", {})
+                profile.open();
             }
 
-            Image {
+            Text {
                 anchors.centerIn: parent
-                width: 24
-                height: 24
-                source: "qrc:/new/images/settings.png"
+                color: ThemeManager.isDarkTheme ? "black" : "white"
+                font {
+                    family: "Jost"
+                    pixelSize: 16 + ThemeManager.additionalSize
+                }
+                text: home.userName.charAt(0).toUpperCase()
             }
         }
     }
@@ -125,39 +175,40 @@ Page {
             anchors.top: parent.top
             anchors.topMargin: 22
             radius: 12
-            color: "#2C2C2C"
+            color: ThemeManager.isDarkTheme ? "#f0f0f0" : "#2C2C2C"
 
             Text {
                 id: hello_text
                 width: 128
                 height: 42
                 anchors.top: parent.top
-                anchors.topMargin: 22
+                anchors.topMargin: 18
                 anchors.left: parent.left
                 anchors.leftMargin: 28
-                color: "white"
+                color: ThemeManager.isDarkTheme ? "black" : "white"
                 font {
-                    pixelSize: 19
+                    pixelSize: 19 + ThemeManager.additionalSize
                     weight: 300
                     family: "Jost"
                 }
-                text: "Влад,\nДобрый день!"
+                text: home.userName + ",\n"+qsTr("Добрый день!")
             }
 
             Text {
+                id: textForText
                 width: 114
                 height: 14
                 anchors.top: hello_text.top
-                anchors.topMargin: hello_text.height + 17
+                anchors.topMargin: hello_text.height + 20
                 anchors.left: parent.left
                 anchors.leftMargin: 28
                 color: "#9C9C9C"
                 font {
-                    pixelSize: 10
+                    pixelSize: 10 + ThemeManager.additionalSize
                     weight: 300
                     family: "Jost"
                 }
-                text: "10 задач на выполнении."
+                text: qsTr("10 задач на выполнении.")
             }
 
             Rectangle {
@@ -167,9 +218,42 @@ Page {
                 anchors.rightMargin: 22
                 anchors.top: parent.top
                 anchors.topMargin: 22
-                Image {
+                border.width: 1
+                radius: 40
+                clip: true
+                border.color: ThemeManager.isDarkTheme ? "black" : "white"
+                color: "transparent"
+
+                Canvas {
+                    id: canvas
                     anchors.fill: parent
-                    source: "qrc:/new/images/Ellipse.png"
+
+                    Image {
+                        id: sourceImage
+                        source: home.userImage === "" ? "qrc:/new/images/Ellipse.png" : home.userImage
+                        visible: false
+                        onStatusChanged: if (status === Image.Ready) canvas.requestPaint()
+                    }
+
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.reset()
+
+                        // Создаем круглую маску
+                        ctx.beginPath()
+                        ctx.arc(width/2, height/2, Math.min(width, height)/2, 0, Math.PI * 2)
+                        ctx.closePath()
+                        ctx.clip()
+
+                        // Рисуем изображение
+                        if (sourceImage.status === Image.Ready) {
+                            ctx.drawImage(sourceImage, 0, 0, width, height)
+                        }
+                    }
+
+                    // Перерисовка при изменении размера
+                    onWidthChanged: requestPaint()
+                    onHeightChanged: requestPaint()
                 }
             }
         }
@@ -179,16 +263,20 @@ Page {
             width: 200
             height: 26
             radius: 13
-            color: "white"
+            border.width: ThemeManager.isDarkTheme ? 1 : null
+            border.color: "white"
+            color:  ThemeManager.isDarkTheme ? "#2e2e2e" : "white"
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: hello_rect.bottom
             anchors.topMargin: -10
             layer.enabled: true
             layer.effect: MultiEffect {
-                shadowColor: "black"
+                shadowColor: ThemeManager.isDarkTheme ? "#2e2e2e" : "black"
                 shadowEnabled: true
-                shadowScale: 0.92
-                paddingRect: Qt.rect(0,0,0,0);
+                shadowBlur: 0.6        // Мягкость тени
+                shadowVerticalOffset: 1  // Смещение тени вниз
+                shadowHorizontalOffset: 1  // Небольшое смещение вправо
+                autoPaddingEnabled: true  // Автоматическое расширение для тени
             }
 
             Image {
@@ -198,7 +286,29 @@ Page {
                 anchors.left: parent.left
                 anchors.leftMargin: 5
                 anchors.verticalCenter: parent.verticalCenter
-                source: "qrc:/new/images/search.png"
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        proj_listing.updateSearch(inputField.text);
+
+                        inputField.focus = false
+                        // Передаём фокус самому контейнеру, чтобы TextField точно его потерял
+                        parent.forceActiveFocus()
+                    }
+                }
+
+                source: ThemeManager.isDarkTheme ? "qrc:/new/images/searchWhite.png" : "qrc:/new/images/search.png"
+            }
+
+            Timer {
+                id: debounceTimer
+                interval: 300      // задержка в миллисекундах
+                repeat: false
+                // При срабатывании таймера вызываем функцию поиска
+                onTriggered: {
+                    proj_listing.updateSearch(inputField.text);
+                }
             }
 
             TextField {
@@ -206,33 +316,60 @@ Page {
                 anchors.left: icon_search.right
                 anchors.verticalCenter: parent.verticalCenter
                 width: parent.width - 30
-                placeholderText: "Поиск по проектам ..."
-                font.pixelSize: 14
+                font.pixelSize: 12 + ThemeManager.additionalSize
                 font.family: "Jost"
                 background: null
+                color: ThemeManager.isDarkTheme ? "white" : "black"
+
+                Label {
+                    id: placeholderLabel
+                    text: qsTr("Поиск по проектам")+" ..."
+                    elide: Text.ElideRight
+                    color: ThemeManager.isDarkTheme ? "white" : "#524F4F"
+                    font {
+                        family: "Jost"
+                        pixelSize: 12 + ThemeManager.additionalSize
+                    }
+                    visible: !inputField.text && !inputField.activeFocus
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                        left: parent.left
+                        leftMargin: 16
+                    }
+                }
+                onTextChanged: {
+                    if (activeFocus) {
+                        debounceTimer.restart();
+                    }
+                }
             }
         }
 
         Row {
             id: curr_proj_header
             width: 343
-            height: 23
+            height: 30
             anchors.top: inputBackground.bottom
             anchors.topMargin: 54
             anchors.horizontalCenter: parent.horizontalCenter
             Text {
+                id: currentSpace
+                anchors.verticalCenter: parent.verticalCenter
                 font.family: "Jost"
-                font.pixelSize: 16
+                font.pixelSize: 16 + ThemeManager.additionalSize
                 font.bold: true
-                text: "Текущие проекты"
+                color: ThemeManager.fontColor
+                text: qsTr("Текущие проекты")
             }
 
             Text {
+                id: seeAll
                 anchors.right: right_image.left
+                anchors.verticalCenter: parent.verticalCenter
                 font.family: "Jost"
-                font.pixelSize: 14
-                color: "#646363"
-                text: "Увидеть все"
+                font.pixelSize: 14 + ThemeManager.additionalSize
+                color: "#828282"
+                text: qsTr("Увидеть все")
             }
 
             Image {
@@ -247,8 +384,14 @@ Page {
 
         ProjectListing {
             id: proj_listing
+
             anchors.top: curr_proj_header.bottom
             anchors.topMargin: 10
+            refsHome: home.StackView
+            userId: home.userId
+            userName: home.userName
+            userEmail: home.userEmail
+            userImage: home.userImage
         }
 
         Row {
@@ -264,24 +407,27 @@ Page {
                 height: parent.height
                 radius: 13
                 color: "#D9FEFF"
+                border.width: ThemeManager.isDarkTheme ? 1 : null
+                border.color: "white"
                 layer.enabled: true
                 layer.effect: MultiEffect {
-                    shadowColor: "black"
+                    shadowColor: ThemeManager.isDarkTheme ? Qt.hsva(Math.random(), 0.9, 1.0, 1.0) : "#80000000"
                     shadowEnabled: true
-                    shadowScale: 0.92
-                    paddingRect: Qt.rect(0,0,0,0);
+                    shadowBlur: 0.6        // Мягкость тени
+                    shadowVerticalOffset: 3  // Смещение тени вниз
+                    shadowHorizontalOffset: 1  // Небольшое смещение вправо
+                    autoPaddingEnabled: true  // Автоматическое расширение для тени
                 }
                 Text {
-                    width: 61
-                    height: 20
+                    id: progressText
                     anchors.top: parent.top
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.topMargin: 15
-                    text: "Прогресс"
+                    text: qsTr("Прогресс")
                     font {
                         family: "Jost"
                         bold: true
-                        pixelSize: 14
+                        pixelSize: 14 + ThemeManager.additionalSize
                     }
                 }
                 Image {
@@ -322,6 +468,7 @@ Page {
                         pixelSize: 10
                     }
                 }
+
                 Image {
                     width: 33
                     height: 29
@@ -342,12 +489,16 @@ Page {
                     height: 80
                     radius: 13
                     color: "#FFD3D3"
+                    border.width: ThemeManager.isDarkTheme ? 1 : null
+                    border.color: "white"
                     layer.enabled: true
                     layer.effect: MultiEffect {
-                        shadowColor: "black"
+                        shadowColor: ThemeManager.isDarkTheme ? Qt.hsva(Math.random(), 0.9, 1.0, 1.0) : "#80000000"
                         shadowEnabled: true
-                        shadowScale: 0.90
-                        paddingRect: Qt.rect(0,0,0,0);
+                        shadowBlur: 0.6        // Мягкость тени
+                        shadowVerticalOffset: 3  // Смещение тени вниз
+                        shadowHorizontalOffset: 1  // Небольшое смещение вправо
+                        autoPaddingEnabled: true  // Автоматическое расширение для тени
                     }
                     Text {
                         width: 70
@@ -378,12 +529,16 @@ Page {
                     height: 80
                     radius: 13
                     color: "#FFD3D3"
+                    border.width: ThemeManager.isDarkTheme ? 1 : null
+                    border.color: "white"
                     layer.enabled: true
                     layer.effect: MultiEffect {
-                        shadowColor: "black"
+                        shadowColor: ThemeManager.isDarkTheme ? Qt.hsva(Math.random(), 0.9, 1.0, 1.0) : "#80000000"
                         shadowEnabled: true
-                        shadowScale: 0.90
-                        paddingRect: Qt.rect(0,0,0,0);
+                        shadowBlur: 0.6    // Мягкость тени
+                        shadowVerticalOffset: 3  // Смещение тени вниз
+                        shadowHorizontalOffset: 1  // Небольшое смещение вправо
+                        autoPaddingEnabled: true  // Автоматическое расширение для тени
                     }
                     Text {
                         width: 70

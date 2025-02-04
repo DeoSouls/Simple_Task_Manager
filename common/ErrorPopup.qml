@@ -24,7 +24,7 @@ Popup {
         color: "black"
         font {
             family: "Jost"
-            pixelSize: 18
+            pixelSize: 18 + ThemeManager.additionalSize
         }
 
         wrapMode: Text.WordWrap
