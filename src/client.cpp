@@ -52,6 +52,8 @@ void Client::updateUserData(const QString& username, const QString& email, const
         reqObj["email"] = email;
         reqObj["password"] = password;
         reqObj["source"] = source;
+        // Для существующей сессии
+        reqObj["token"] = token;
 
         QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
 
@@ -95,6 +97,8 @@ void Client::createSpace(const QString& spacename, int userId) {
         reqObj["endpoint"] = "create_space";
         reqObj["spacename"] = spacename;
         reqObj["userId"] = userId;
+        // Для существующей сессии
+        reqObj["token"] = token;
 
         QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
 
@@ -115,6 +119,30 @@ void Client::getSpaces(int userId) {
         QJsonObject reqObj;
         reqObj["endpoint"] = "spaces";
         reqObj["userId"] = userId;
+        // Для существующей сессии
+        reqObj["token"] = token;
+
+        QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
+
+        socket->write(jsonData);
+        socket->flush();
+        if (!socket->waitForBytesWritten(3000)) {
+            qDebug() << "Ошибка отправки данных:" << socket->errorString();
+        } else {
+            qDebug() << "Данные отправлены:" << jsonData;
+        }
+    } else {
+        qDebug() << "Сокет не подключен!";
+    }
+}
+
+void Client::updateSpace(int spaceId) {
+    if (socket->state() == QAbstractSocket::ConnectedState) {
+        QJsonObject reqObj;
+        reqObj["endpoint"] = "update_space";
+        reqObj["spaceId"] = spaceId;
+        // Для существующей сессии
+        reqObj["token"] = token;
 
         QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
 
@@ -135,6 +163,8 @@ void Client::deleteSpace(int spaceId) {
         QJsonObject reqObj;
         reqObj["endpoint"] = "delete_space";
         reqObj["spaceId"] = spaceId;
+        // Для существующей сессии
+        reqObj["token"] = token;
 
         QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
 
@@ -159,6 +189,8 @@ void Client::createTask(const QString& title, const QString& description, const 
         reqObj["status"] = status;
         reqObj["due_time"] = due_time;
         reqObj["space_id"] = spaceId;
+        // Для существующей сессии
+        reqObj["token"] = token;
 
         QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
 
@@ -179,6 +211,8 @@ void Client::getTasks(int spaceId) {
         QJsonObject reqObj;
         reqObj["endpoint"] = "tasks";
         reqObj["spaceId"] = spaceId;
+        // Для существующей сессии
+        reqObj["token"] = token;
 
         QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
 
@@ -203,6 +237,8 @@ void Client::updateTask(int taskId, const QString& title, const QString& descrip
         reqObj["description"] = description;
         reqObj["dueTime"] = dueTime;
         reqObj["status"] = status;
+        // Для существующей сессии
+        reqObj["token"] = token;
 
         QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
 
@@ -223,6 +259,8 @@ void Client::deleteTask(int taskId) {
         QJsonObject reqObj;
         reqObj["endpoint"] = "delete_task";
         reqObj["taskId"] = taskId;
+        // Для существующей сессии
+        reqObj["token"] = token;
 
         QByteArray jsonData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
 
@@ -251,14 +289,12 @@ void Client::receiveData() {
         return;
     }
 
-    // qDebug() << "Token: " << response.value("token").toString();
-    setMessage(QVariant::fromValue(response));
-}
+    if(!response.value("token").isUndefined()) {
+        token = response.value("token").toString();
+        qDebug() << "Token: " << token;
+    }
 
-void Client::onDisconnected() {
-    qDebug() << "Соединение с сервером разорвано.";
-    // Попробовать переподключиться
-    socket->connectToHost("127.0.0.1", 12345);
+    setMessage(QVariant::fromValue(response));
 }
 
 QVariant Client::getMessage() const {
@@ -273,4 +309,10 @@ void Client::setMessage(const QVariant& message) {
 
     m_message = message;
     emit messageChanged();
+}
+
+void Client::onDisconnected() {
+    qDebug() << "Соединение с сервером разорвано.";
+    // Попробовать переподключиться
+    socket->connectToHost("127.0.0.1", 12345);
 }

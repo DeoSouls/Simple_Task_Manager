@@ -50,7 +50,7 @@ Page {
     function handleClientMessage(message) {
         if(message["type"] === "upd_user" && message["success"]) {
             home.userName = message["username"];
-
+            home.userImage = message["source"]
         } else if(message["type"] === "deleted_space" && message["success"]) {
             client.getSpaces(home.userId);
         } else if(message["type"] === "spaces" && message["success"]) {
@@ -59,10 +59,11 @@ Page {
 
             proj_listing.spaceModelList.updateFromJson(message["data"])
             proj_listing.spaceModelFiltList.updateFromJson(message["data"])
+            menuDrawer.initialFavoriteSpaces(message["data"]);
         } else if(message != undefined && message["success"]) {
             console.log("Создано пространство id: "+ message["spaceId"]);
             menuDrawer.container.createObjectFromString(message["spaceId"],
-                                                           message["spacename"]);
+                                                           message["spacename"], message["isFavorite"]);
 
             // if (!Array.isArray(menuDrawer.initialSpaces)) {
             //     menuDrawer.initialSpaces = [];
@@ -79,6 +80,10 @@ Page {
 
             errorPopup.textPopup = message["error"];
             errorPopup.open();
+
+            if(message["invalid_token"]) {
+                home.StackView.view.push("../LoginPage/Login.qml", {});
+            }
         }
     }
 
@@ -169,7 +174,7 @@ Page {
         anchors.fill: parent
         Rectangle {
             id: hello_rect
-            width: 342
+            width: parent.width - 20
             height: 123 /// 123
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
@@ -347,7 +352,7 @@ Page {
 
         Row {
             id: curr_proj_header
-            width: 343
+            width: parent.width - 20
             height: 30
             anchors.top: inputBackground.bottom
             anchors.topMargin: 54
@@ -395,7 +400,7 @@ Page {
         }
 
         Row {
-            width: 319
+            width: parent.width - 20
             height: 200
             anchors.top: proj_listing.bottom
             anchors.topMargin: 24
@@ -403,7 +408,7 @@ Page {
             spacing: 13
             Rectangle {
                 id: lstat_rect
-                width: 152
+                width: parent.width / 2
                 height: parent.height
                 radius: 13
                 color: "#D9FEFF"
@@ -480,12 +485,12 @@ Page {
                 }
             }
             Column {
-                width: parent.width - lstat_rect.width
+                width: parent.width / 2 - 13
                 height: 170
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 10
                 Rectangle {
-                    width: 319-165
+                    width: parent.width
                     height: 80
                     radius: 13
                     color: "#FFD3D3"
@@ -525,7 +530,7 @@ Page {
                     }
                 }
                 Rectangle {
-                    width: 319-165
+                    width: parent.width
                     height: 80
                     radius: 13
                     color: "#FFD3D3"

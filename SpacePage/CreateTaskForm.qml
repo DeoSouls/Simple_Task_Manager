@@ -116,6 +116,7 @@ Drawer {
         }
         CustomCalendar {
             id: datePicker
+            anchors.horizontalCenter: parent.horizontalCenter
             selectedDate: new Date(2000, 0, 1) // Начальная дата
             startYear: 1950 // Минимальный год
             endYear: 2030 // Максимальный год

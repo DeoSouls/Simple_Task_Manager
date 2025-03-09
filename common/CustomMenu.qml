@@ -10,6 +10,7 @@ Drawer {
     property var container: spacesTab.containerTabs
     property var currentPage: null
     property var initialSpaces: null
+    property var favoriteSpaces: null
 
     property string headerHome: qsTr("Дом")
     property string userName: ""
@@ -21,6 +22,23 @@ Drawer {
     edge: Qt.LeftEdge
     background: Rectangle {
         color: ThemeManager.isDarkTheme ? "#282829" : "white"
+    }
+
+    function initialFavoriteSpaces(array) {
+        if(array !== null) {
+            if (!menuDrawer.favoriteSpaces) {
+                menuDrawer.favoriteSpaces = [];
+            }
+
+            // menuDrawer.favoriteSpaces = array;
+            for (var i = 0; i < array.length; i++) {
+                var item = array[i];
+                if(item && typeof item === "object" && item.isFavorite) {
+                    console.log(item.isFavorite);
+                    menuDrawer.favoriteSpaces.push(item);
+                }
+            }
+        }
     }
 
     Connections {
@@ -68,6 +86,13 @@ Drawer {
                     family: "Jost"
                     pixelSize: 18 + ThemeManager.additionalSize
                 }
+                background: Rectangle {
+                    color: ThemeManager.backgroundColor
+                    border.width: 1
+                    border.color: ThemeManager.fontColor
+                    radius: 4
+                }
+                color: ThemeManager.fontColor
             }
         }
         onClosed: {
@@ -80,18 +105,16 @@ Drawer {
 
     MouseArea {
         anchors.fill: parent
-        // Обрабатываем клик вне TextField
         onClicked: {
             // Снимаем фокус с TextField
             searchMenu.focus = false
-            // Передаём фокус самому контейнеру, чтобы TextField точно его потерял
             parent.forceActiveFocus()
         }
     }
 
     Search {
         id: searchMenu
-        width: 242
+        width: parent.width - 82
         height: 40
         anchors {
             top: parent.top
@@ -116,7 +139,7 @@ Drawer {
             top: parent.top
             topMargin: 18
             left: searchMenu.right
-            leftMargin: 17
+            leftMargin: 13
         }
 
         onClicked: {
@@ -170,8 +193,19 @@ Drawer {
             Layout.alignment: Qt.AlignTop
 
             headerTab: qsTr("Фавориты")
+            spacesArray: menuDrawer.favoriteSpaces
+            refsPage: menuDrawer.currentPage
+            refsMenu: menuDrawer
+            userName: menuDrawer.userName
+            userEmail: menuDrawer.userEmail
+            userImage: menuDrawer.userImage
             isTabs: true
             leftMarginText: 16
+            mouse.onClicked: {
+                if(menuDrawer.initialSpaces === null) {
+                    client.getSpaces(menuDrawer.userId);
+                }
+            }
         }
         Tab {
             id: spacesTab

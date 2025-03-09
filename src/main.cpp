@@ -91,11 +91,15 @@ int main(int argc, char *argv[]) {
     // } else {
     //     qDebug() << "Ошибка удаления таблицы" << query.lastError();
     // }
+
+    // Update table
+    // query.exec("ALTER TABLE spaces ADD COLUMN isFavorite BOOLEAN DEFAULT 0");
     // Create users table
     query.exec("CREATE TABLE IF NOT EXISTS spaces ("
                "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                "spacename TEXT,"
                "user_id INTEGER,"
+               "isFavorite BOOLEAN CHECK (isFavorite IN (0, 1)) DEFAULT 0,"
                "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
                "FOREIGN KEY (user_id) REFERENCES users(id))");
 

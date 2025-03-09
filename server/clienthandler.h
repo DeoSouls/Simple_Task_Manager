@@ -29,6 +29,7 @@ class ClientHandler : public QObject {
         QJsonObject handleRegister(const QJsonObject &request);
         QJsonObject handleUpdUser(const QJsonObject& request);
         QJsonObject handleCreateSpace(const QJsonObject& request);
+        QJsonObject handleUpdateSpace(const QJsonObject& request);
         QJsonObject handleGetSpaces(const QJsonObject& request);
         QJsonObject handleCreateTasks(const QJsonObject &request);
         QJsonObject handleGetTasks(const QJsonObject& request);
@@ -36,9 +37,6 @@ class ClientHandler : public QObject {
         QJsonObject handleUpdTask(const QJsonObject& request);
         QJsonObject handleDltTask(const QJsonObject& request);
         QJsonObject handleLogout(const QJsonObject &request);
-        void createNewSession();
-        void saveSessionData(const QByteArray& data);
-        QByteArray loadSessionData();
 };
 
 #endif // CLIENTHANDLER_H

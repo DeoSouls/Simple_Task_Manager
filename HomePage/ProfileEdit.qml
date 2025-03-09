@@ -105,40 +105,12 @@ Drawer {
                     }
                 }
 
-                Canvas {
-                    id: canvas
-                    anchors.fill: parent
-
-                    // Загрузка изображения заранее
-                    Image {
-                        id: profileImg
-                        width: 100
-                        height: 100
-                        source: profile.profileImage === null ||
-                                profile.profileImage === "" ? ThemeManager.isDarkTheme ? "qrc:/new/images/profileWhite.png" : "qrc:/new/images/profileBlack.png" : profile.profileImage
-                        visible: false
-                        onStatusChanged: if (status === Image.Ready) canvas.requestPaint()
-                    }
-
-                    onPaint: {
-                        var ctx = getContext("2d")
-                        ctx.reset()
-
-                        // Создаем круглую маску
-                        ctx.beginPath()
-                        ctx.arc(width/2, height/2, Math.min(width, height)/2, 0, Math.PI * 2)
-                        ctx.closePath()
-                        ctx.clip()
-
-                        // Рисуем изображение
-                        if (profileImg.status === Image.Ready) {
-                            ctx.drawImage(profileImg, 0, 0, width, height)
-                        }
-                    }
-
-                    // Перерисовка при изменении размера
-                    onWidthChanged: requestPaint()
-                    onHeightChanged: requestPaint()
+                Image {
+                    id: profileImg
+                    width: 100
+                    height: 100
+                    source: profile.profileImage === null ||
+                            profile.profileImage === "" ? ThemeManager.isDarkTheme ? "qrc:/new/images/profileWhite.png" : "qrc:/new/images/profileBlack.png" : profile.profileImage
                 }
             }
         }

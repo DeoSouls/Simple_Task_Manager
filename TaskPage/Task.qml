@@ -38,6 +38,10 @@ Page {
         } else {
             errorPopup.textPopup = message["error"];
             errorPopup.open();
+
+            if(message["invalid_token"]) {
+                task.StackView.view.push("../LoginPage/Login.qml", {});
+            }
         }
     }
 
@@ -170,6 +174,7 @@ Page {
             CustomCalendar {
                 id: datePicker
                 height: 30
+                anchors.horizontalCenter: parent.horizontalCenter
                 selectedDate: new Date(task.dueTimeTask) // Начальная дата
                 timeSelected: task.reformateTime(task.dueTimeTask)
                 startYear: 1950 // Минимальный год

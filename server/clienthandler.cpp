@@ -37,6 +37,7 @@ void ClientHandler::initializeDatabase() {
                    "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                    "spacename TEXT,"
                    "user_id INTEGER,"
+                   "isFavorite BOOLEAN CHECK (isFavorite IN (0, 1)) DEFAULT 0,"
                    "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
                    "FOREIGN KEY (user_id) REFERENCES users(id))");
 
@@ -71,19 +72,6 @@ void ClientHandler::handleConnection() {
     connect(m_socket, &QTcpSocket::disconnected, this, &ClientHandler::disconnected);
 
     qDebug() << "Connected to session!";
-
-    // Создаем новую сессию или восстанавливаем существующую
-    // createNewSession();
-    // QByteArray sessionData = loadSessionData();
-    // socket->write("Connected! Session data: " + sessionData);
-}
-
-void ClientHandler::saveSessionData(const QByteArray &data) {
-    // SessionManager::updateSession(db, sessionId, data);
-}
-
-QByteArray ClientHandler::loadSessionData() {
-    // return SessionManager::getSessionData(db, sessionId);
 }
 
 void ClientHandler::readData() {
@@ -105,6 +93,8 @@ void ClientHandler::readData() {
         response = handleCreateSpace(request);
     } else if (endpoint == "spaces") {
         response = handleGetSpaces(request);
+    } else if (endpoint == "update_space") {
+        response = handleUpdateSpace(request);
     } else if (endpoint == "delete_space") {
         response = handleDeleteSpace(request);
     } else if (endpoint == "create_task") {
@@ -124,12 +114,6 @@ void ClientHandler::readData() {
     QByteArray responseData = QJsonDocument(response).toJson();
     m_socket->write(responseData);
     m_socket->flush();
-
-    // Сохраняем данные в сессии
-    // saveSessionData(data);
-
-    // Отправляем ответ клиенту
-    // socket->write("Data saved to session: " + data);
 }
 
 QJsonObject ClientHandler::handleLogin(const QJsonObject& request) {
@@ -162,8 +146,9 @@ QJsonObject ClientHandler::handleLogin(const QJsonObject& request) {
         QString email = query.value("email").toString();
         QString storedPasswordHash = query.value("password_hash").toString();
 
-        qDebug() << "id пользователя: " << userId;
         if(QString(passwordHash.toHex()) == storedPasswordHash) {
+
+            // Создание сессии для клиента
             QString token = SessionManager::instance().createSession(userId);
 
             response["success"] = true;
@@ -201,6 +186,8 @@ QJsonObject ClientHandler::handleRegister(const QJsonObject& request) {
     QJsonObject response;
     if (query.exec() && query.next()) {
         int userId = query.value("id").toInt();
+
+        // Создание сессии для клиента
         QString token = SessionManager::instance().createSession(userId);
 
         qDebug() << "Пользователь успешно зарегистрирован: " << username;
@@ -218,6 +205,18 @@ QJsonObject ClientHandler::handleRegister(const QJsonObject& request) {
 }
 
 QJsonObject ClientHandler::handleCreateSpace(const QJsonObject& request) {
+    // Проверка на валидность токена
+    QString token = request.value("token").toString();
+    if(!SessionManager::instance().validateSession(token)) {
+        SessionManager::instance().removeSession(token);
+
+        QJsonObject response;
+        response["success"] = false;
+        response["error"] = "Invalid token.";
+        response["invalid_token"] = true;
+        return response;
+    }
+
     QString spacename = request.value("spacename").toString();
     int userId = request.value("userId").toInt();
 
@@ -246,10 +245,21 @@ QJsonObject ClientHandler::handleCreateSpace(const QJsonObject& request) {
 }
 
 QJsonObject ClientHandler::handleGetSpaces(const QJsonObject& request) {
+    // Проверка на валидность токена
+    QString token = request.value("token").toString();
+    if(!SessionManager::instance().validateSession(token)) {
+        SessionManager::instance().removeSession(token);
+
+        QJsonObject response;
+        response["success"] = false;
+        response["error"] = "Invalid token.";
+        response["invalid_token"] = true;
+        return response;
+    }
+
     int userId = request.value("userId").toInt();
-    // validate session
     QSqlQuery query(m_refDatabase);
-    query.prepare("SELECT spaces.id, spaces.spacename, COUNT(tasks.id) AS task_count, MAX(tasks.due_time) AS last_task_time "
+    query.prepare("SELECT spaces.id, spaces.spacename, spaces.isFavorite, COUNT(tasks.id) AS task_count, MAX(tasks.due_time) AS last_task_time "
                   "FROM spaces "
                   "LEFT JOIN tasks ON spaces.id = tasks.space_id "
                   "WHERE spaces.user_id = :user_id "
@@ -270,12 +280,14 @@ QJsonObject ClientHandler::handleGetSpaces(const QJsonObject& request) {
         int spaceId = query.value("id").toInt();
         QString spacename = query.value("spacename").toString();
         int task_count = query.value("task_count").toInt();
+        bool is_favorite = query.value("isFavorite").toBool();
         QString last_task_time = query.value("last_task_time").toString();
         // QString token = SessionManager::instance().createSession(userId);
 
         responseToArray["spaceId"] = spaceId;
         responseToArray["spacename"] = spacename;
         responseToArray["taskCount"] = task_count;
+        responseToArray["isFavorite"] = is_favorite;
         responseToArray["lastDueTime"] = last_task_time;
         responseArray.append(responseToArray);
     }
@@ -294,6 +306,18 @@ QJsonObject ClientHandler::handleGetSpaces(const QJsonObject& request) {
 }
 
 QJsonObject ClientHandler::handleCreateTasks(const QJsonObject& request) {
+    // Проверка на валидность токена
+    QString token = request.value("token").toString();
+    if(!SessionManager::instance().validateSession(token)) {
+        SessionManager::instance().removeSession(token);
+
+        QJsonObject response;
+        response["success"] = false;
+        response["error"] = "Invalid token.";
+        response["invalid_token"] = true;
+        return response;
+    }
+
     QString title = request.value("title").toString();
     QString description = request.value("description").toString();
     QString status = request.value("status").toString();
@@ -312,7 +336,6 @@ QJsonObject ClientHandler::handleCreateTasks(const QJsonObject& request) {
     QJsonObject response;
     if (query.exec() && query.next()) {
         int taskId = query.value("id").toInt();
-        // QString token = SessionManager::instance().createSession(userId);
 
         qDebug() << "Таск успешно создан: " << taskId;
 
@@ -335,8 +358,19 @@ QJsonObject ClientHandler::handleCreateTasks(const QJsonObject& request) {
 }
 
 QJsonObject ClientHandler::handleGetTasks(const QJsonObject& request) {
+    // Проверка на валидность токена
+    QString token = request.value("token").toString();
+    if(!SessionManager::instance().validateSession(token)) {
+        SessionManager::instance().removeSession(token);
+
+        QJsonObject response;
+        response["success"] = false;
+        response["error"] = "Invalid token.";
+        response["invalid_token"] = true;
+        return response;
+    }
+
     int spaceId = request.value("spaceId").toInt();
-    // validate session
     QSqlQuery query(m_refDatabase);
     query.prepare("SELECT id, title, description, status, due_time, created_at FROM tasks WHERE space_id = :space_id");
     query.bindValue(":space_id", spaceId);
@@ -381,7 +415,54 @@ QJsonObject ClientHandler::handleGetTasks(const QJsonObject& request) {
         return response;
     }
 }
+
+QJsonObject ClientHandler::handleUpdateSpace(const QJsonObject& request) {
+    // Проверка на валидность токена
+    QString token = request.value("token").toString();
+    if(!SessionManager::instance().validateSession(token)) {
+        SessionManager::instance().removeSession(token);
+
+        QJsonObject response;
+        response["success"] = false;
+        response["error"] = "Invalid token.";
+        response["invalid_token"] = true;
+        return response;
+    }
+
+    int spaceId = request.value("spaceId").toInt();
+
+    QSqlQuery query(m_refDatabase);
+    query.prepare("UPDATE spaces SET isFavorite = 1 WHERE id = :space_id");
+    query.bindValue(":space_id", spaceId);
+
+    QJsonObject response;
+    if (query.exec()) {
+        qDebug() << "Спейс успешно обновлен: " << spaceId;
+
+        response["success"] = true;
+        response["spaceId"] = spaceId;
+        response["type"] = "updated_space";
+    } else {
+        response["success"] = false;
+        response["error"] = "Invalid delete space.";
+    }
+
+    return response;
+}
+
 QJsonObject ClientHandler::handleDeleteSpace(const QJsonObject& request) {
+    // Проверка на валидность токена
+    QString token = request.value("token").toString();
+    if(!SessionManager::instance().validateSession(token)) {
+        SessionManager::instance().removeSession(token);
+
+        QJsonObject response;
+        response["success"] = false;
+        response["error"] = "Invalid token.";
+        response["invalid_token"] = true;
+        return response;
+    }
+
     int spaceId = request.value("spaceId").toInt();
 
     QSqlQuery query(m_refDatabase);
@@ -390,8 +471,6 @@ QJsonObject ClientHandler::handleDeleteSpace(const QJsonObject& request) {
 
     QJsonObject response;
     if (query.exec()) {
-        // QString token = SessionManager::instance().createSession(userId);
-
         qDebug() << "Спейс успешно удален: " << spaceId;
 
         response["success"] = true;
@@ -406,6 +485,18 @@ QJsonObject ClientHandler::handleDeleteSpace(const QJsonObject& request) {
 }
 
 QJsonObject ClientHandler::handleUpdTask(const QJsonObject& request) {
+    // Проверка на валидность токена
+    QString token = request.value("token").toString();
+    if(!SessionManager::instance().validateSession(token)) {
+        SessionManager::instance().removeSession(token);
+
+        QJsonObject response;
+        response["success"] = false;
+        response["error"] = "Invalid token.";
+        response["invalid_token"] = true;
+        return response;
+    }
+
     QString title = request.value("title").toString();
     QString description = request.value("description").toString();
     QString status = request.value("status").toString();
@@ -444,6 +535,18 @@ QJsonObject ClientHandler::handleUpdTask(const QJsonObject& request) {
 }
 
 QJsonObject ClientHandler::handleDltTask(const QJsonObject& request) {
+    // Проверка на валидность токена
+    QString token = request.value("token").toString();
+    if(!SessionManager::instance().validateSession(token)) {
+        SessionManager::instance().removeSession(token);
+
+        QJsonObject response;
+        response["success"] = false;
+        response["error"] = "Invalid token.";
+        response["invalid_token"] = true;
+        return response;
+    }
+
     int taskId = request.value("taskId").toInt();
 
     QSqlQuery query(m_refDatabase);
@@ -452,8 +555,6 @@ QJsonObject ClientHandler::handleDltTask(const QJsonObject& request) {
 
     QJsonObject response;
     if (query.exec()) {
-        // QString token = SessionManager::instance().createSession(userId);
-
         qDebug() << "Таск успешно удален: " << taskId;
 
         response["success"] = true;
@@ -468,6 +569,18 @@ QJsonObject ClientHandler::handleDltTask(const QJsonObject& request) {
 }
 
 QJsonObject ClientHandler::handleUpdUser(const QJsonObject& request) {
+    // Проверка на валидность токена
+    QString token = request.value("token").toString();
+    if(!SessionManager::instance().validateSession(token)) {
+        SessionManager::instance().removeSession(token);
+
+        QJsonObject response;
+        response["success"] = false;
+        response["error"] = "Invalid token.";
+        response["invalid_token"] = true;
+        return response;
+    }
+
     int userId = request.value("userId").toInt();
     QString username = request.value("username").toString();
     QString email = request.value("email").toString();
@@ -487,8 +600,6 @@ QJsonObject ClientHandler::handleUpdUser(const QJsonObject& request) {
 
     QJsonObject response;
     if (query.exec()) {
-        // QString token = SessionManager::instance().createSession(userId);
-
         qDebug() << "Пользователь обновлен: " << username;
         response["success"] = true;
         response["username"] = username;

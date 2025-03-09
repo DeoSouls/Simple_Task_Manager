@@ -13,6 +13,7 @@ Page {
     property string userName: ""
     property string userImage: ""
     property string userEmail: ""
+    property bool isFavorite: false
     property var spacesArray: []
 
     anchors.top: parent.top
@@ -49,14 +50,20 @@ Page {
             tasksModel.updateFromJson(message["data"]);
         } else if(message["type"] === "deleted_task" && message["success"]) {
             console.log("Таск удален" + message["taskId"]);
+        } else if(message["type"] === "updated_space" && message["success"]) {
+            console.log("Space обновлен " + message["spaceId"]);
         } else if(message["type"] === "created_task" && message["success"]) {
             console.log("Создан таск id: "+ message["taskId"]);
             tasksModel.addTask(message["title"], message["description"],
-                                     message["status"], message["createTime"], message["dueTime"], message["spaceId"], message["taskId"]);
+                                message["status"],
+                                message["createTime"],
+                                message["dueTime"],
+                                message["spaceId"],
+                                message["taskId"]);
         } else if(message != undefined && message["success"]) {
             console.log("Создано пространство id: "+ message["spaceId"]);
             menuDrawer.container.createObjectFromString(message["spaceId"],
-                                                           message["spacename"]);
+                                                        message["spacename"]);
             if (!Array.isArray(menuDrawer.initialSpaces)) {
                 menuDrawer.initialSpaces = [];
             }
@@ -67,6 +74,10 @@ Page {
         } else {
             errorPopup.textPopup = message["error"];
             errorPopup.open();
+
+            if(message["invalid_token"]) {
+                space.StackView.view.push("../LoginPage/Login.qml", {});
+            }
         }
     }
 
@@ -137,7 +148,7 @@ Page {
             width: 48
             height: 48
 
-            property bool isFavorite: false
+            property bool isFavorite: space.isFavorite
 
             borderWidth: 0
             borderRadius: 24
@@ -166,6 +177,9 @@ Page {
             onClicked: {
                 toAddFavorite.isFavorite = !toAddFavorite.isFavorite
                 // createForm.open();
+                if(toAddFavorite.isFavorite) {
+                    client.updateSpace(space.spaceId);
+                }
             }
 
             Image {

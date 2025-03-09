@@ -6,7 +6,7 @@ import "../common"
 
 Flickable {
     id: flickable
-    width: 343
+    width: parent.width - 20
     height: 153
     anchors.horizontalCenter: parent.horizontalCenter
     contentWidth: contentItem.width
@@ -91,6 +91,7 @@ Flickable {
                         family: "Jost"
                         pixelSize: 13 + ThemeManager.additionalSize
                     }
+                    color: ThemeManager.fontColor
                 }
             }
         }
@@ -131,6 +132,7 @@ Flickable {
                                 spaceId: model.spaceId,
                                 userId: flickable.userId,
                                 spacename: model.spacename,
+                                isFavorite: model.isFavorite,
                                 userName: flickable.userName,
                                 userEmail: flickable.userEmail,
                                 userImage: flickable.userImage,

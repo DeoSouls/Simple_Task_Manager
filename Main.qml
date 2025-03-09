@@ -6,7 +6,7 @@ import "LoginPage"
 import "common"
 
 ApplicationWindow {
-    width: 367
+    width: 372
     height: 752
     visible: true
     color: ThemeManager.backgroundColor

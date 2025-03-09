@@ -101,7 +101,7 @@ Rectangle {
 
     onSpacesArrayChanged: {
         if(spacesArray !== null) {
-            console.log(spacesArray);
+            console.log("gad++"+spacesArray);
             initializeModel(spacesArray);
         }
     }
@@ -115,15 +115,18 @@ Rectangle {
 
         for (var i = 0; i < jsonArray.length; i++) {
             var item = jsonArray[i];
+            console.log("c++"+item);
             if(item && typeof item === "object") {
                 initialSpacesModel.append({
                     spacename: item.spacename,
-                    spaceId: item.spaceId
+                    spaceId: item.spaceId,
+                    isFavorite: item.isFavorite
                 });
 
                 filteredModel.append({
                     spacename: item.spacename,
-                    spaceId: item.spaceId
+                    spaceId: item.spaceId,
+                    isFavorite: item.isFavorite
                 });
             }
         }
@@ -164,7 +167,7 @@ Rectangle {
                     interactive: true
                     model: filteredModel
                     delegate: SpaceTab {
-                        width: 322
+                        width: homeTab.width
                         height: 45
                         headerTab: model.spacename
                         spaceId: model.spaceId
@@ -182,6 +185,7 @@ Rectangle {
                                     spaceId: model.spaceId,
                                     userId: homeTab.refsPage.userId,
                                     spacename: model.spacename,
+                                    isFavorite: model.isFavorite,
                                     userName: homeTab.userName,
                                     userEmail: homeTab.userEmail,
                                     userImage: homeTab.userImage,
@@ -202,15 +206,17 @@ Rectangle {
                 }
             }
 
-            function createObjectFromString(spaceId, headerSpace) {
+            function createObjectFromString(spaceId, headerSpace, isFav) {
                 homeTab.initialSpaces.append({
                     spacename: headerSpace,
-                    spaceId: spaceId
+                    spaceId: spaceId,
+                    isFavorite: isFav
                 });
 
                 filteredModel.append({
                     spacename: headerSpace,
-                    spaceId: spaceId
+                    spaceId: spaceId,
+                    isFavorite: isFav
                 });
 
             }

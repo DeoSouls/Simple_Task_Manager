@@ -16,6 +16,7 @@ class Client : public QObject {
         Q_INVOKABLE void updateUserData(const QString& username, const QString& email, const QString& password, int userId, const QString& source);
         Q_INVOKABLE void createSpace(const QString& spacename, int userId);
         Q_INVOKABLE void getSpaces(int userId);
+        Q_INVOKABLE void updateSpace(int spaceId);
         Q_INVOKABLE void deleteSpace(int spaceId);
         Q_INVOKABLE void createTask(const QString& title, const QString& description, const QString& status, const QString& due_time, int spaceId);
         Q_INVOKABLE void getTasks(int spaceId);
@@ -29,6 +30,7 @@ class Client : public QObject {
     private:
         QTcpSocket* socket;
         QVariant m_message;
+        QString token;
     private slots:
         void receiveData();
         void onConnected();

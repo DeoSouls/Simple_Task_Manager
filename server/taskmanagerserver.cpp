@@ -34,19 +34,6 @@ void TaskManagerServer::incomingConnection(qintptr socketDescriptor) {
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
 
     thread->start();
-    // QTcpSocket* socket = new QTcpSocket();
-
-    // if(!socket->setSocketDescriptor(socketDescriptor)) {
-    //     delete socket;
-    //     return;
-    // }
-
-    // connect(socket, &QTcpSocket::readyRead, this, &TaskManagerServer::handleRequest);
-    // connect(socket, &QTcpSocket::disconnected, this, [this, socket]() {
-    //     socket->deleteLater();
-    // });
-
-    // qDebug() << "Новое соединение от " + socket->peerAddress().toString();
 }
 
 void TaskManagerServer::setReferenceDatabase(const QSqlDatabase &db) {

@@ -10,6 +10,7 @@ struct Spaces {
     int spaceId;
     QString spacename;
     int taskCount;
+    bool isFavorite;
     QString lastDueTime;
 };
 
@@ -20,6 +21,7 @@ class SpaceModel : public QAbstractListModel {
             SpaceIdRole = Qt::UserRole + 1,
             SpaceNameRole,
             TaskCountRole,
+            IsFavoriteRole,
             LastDueTimeRole
         };
         explicit SpaceModel(QObject *parent = nullptr);

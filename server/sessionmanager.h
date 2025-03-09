@@ -20,8 +20,8 @@ class SessionManager {
         bool validateSession(const QString &token);
 
         void removeSession(const QString &token);
-        SessionManager() = default;
     private:
+        SessionManager() = default;
         QString generateToken();
 
         QHash<QString, ClientSession> sessions;

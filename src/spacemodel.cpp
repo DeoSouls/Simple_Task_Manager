@@ -20,6 +20,8 @@ QVariant SpaceModel::data(const QModelIndex &index, int role) const {
         return space.spacename;
     case TaskCountRole:
         return space.taskCount;
+    case IsFavoriteRole:
+        return space.isFavorite;
     case LastDueTimeRole:
         return space.lastDueTime;
     default:
@@ -32,6 +34,7 @@ QHash<int, QByteArray> SpaceModel::roleNames() const {
     roles[SpaceIdRole] = "spaceId";
     roles[SpaceNameRole] = "spacename";
     roles[TaskCountRole] = "taskCount";
+    roles[IsFavoriteRole] = "isFavorite";
     roles[LastDueTimeRole] = "lastDueTime";
     return roles;
 }
@@ -51,6 +54,7 @@ void SpaceModel::updateFromJson(const QJsonArray &data) {
             m_spaces.append({obj["spaceId"].toInt(),
                              obj["spacename"].toString(),
                              obj["taskCount"].toInt(),
+                             obj["isFavorite"].toBool(),
                              obj["lastDueTime"].toString()});
         }
         endInsertRows(); // Отправляет rowsInserted
@@ -90,6 +94,7 @@ void SpaceModel::appendSpace(const QVariantMap &item) {
     space.spacename = item["spacename"].toString();
     space.spaceId = item["spaceId"].toInt();
     space.taskCount = item["taskCount"].toInt();
+    space.isFavorite = item["isFavorite"].toBool();
     space.lastDueTime = item["lastDueTime"].toString();
     // Установка других полей...
     m_spaces.append(space);
