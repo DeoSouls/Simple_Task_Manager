@@ -244,7 +244,7 @@ Drawer {
                     anchors.centerIn: parent
                     width: 24
                     height: 24
-                    source: ThemeManager.isDarkTheme ? "qrc:/new/images/plusWhite.png" : "qrc:/new/images/plus.png"
+                    source: ThemeManager.isDarkTheme ? "qrcgit :/new/images/plusWhite.png" : "qrc:/new/images/plus.png"
                 }
             }
             mouse.onClicked: {

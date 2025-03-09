@@ -50,7 +50,7 @@ QString SessionManager::generateToken() {
     // + QByteArray::number(QRandomGenerator::global()->generate());
     // Генерация уникальных компонентов
     const qint64 timestamp = QDateTime::currentSecsSinceEpoch();
-    const qint64 expiration = timestamp + 10 * 60;
+    const qint64 expiration = timestamp + 20 * 60;
     const quint32 random = QRandomGenerator::global()->generate();
 
     // Формирование данных для хеширования
