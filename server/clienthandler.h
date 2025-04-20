@@ -6,6 +6,8 @@
 #include <QObject>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QHash>
+#include <functional>
 
 class ClientHandler : public QObject {
         Q_OBJECT
@@ -18,6 +20,9 @@ class ClientHandler : public QObject {
     signals:
         void finished();
     private:
+        using EndPointHandlerFunc = std::function<QJsonObject(const QJsonObject&)>;
+        QHash<QString, EndPointHandlerFunc> endpointHandlers;
+
         QSqlDatabase m_refDatabase;
         QTcpSocket* m_socket;
         qintptr m_socketDescriptor;
@@ -25,6 +30,7 @@ class ClientHandler : public QObject {
         QSqlDatabase db;
 
         void initializeDatabase();
+        void initializeEndpointHandlers();
         QJsonObject handleLogin(const QJsonObject& request);
         QJsonObject handleRegister(const QJsonObject &request);
         QJsonObject handleUpdUser(const QJsonObject& request);

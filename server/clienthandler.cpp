@@ -7,7 +7,55 @@
 
 ClientHandler::ClientHandler(qintptr socketDescriptor, const QSqlDatabase &refDb, QObject *parent)
     : QObject(parent), m_socketDescriptor(socketDescriptor), m_refDatabase(refDb) {
+    initializeEndpointHandlers();
     initializeDatabase();
+}
+
+void ClientHandler::initializeEndpointHandlers() {
+    // Используем лямбда-функции для привязки методов класса
+    endpointHandlers["login"] = [this](const QJsonObject& req) {
+        return this->handleLogin(req);
+    };
+
+    endpointHandlers["register"] = [this](const QJsonObject& req) {
+        return this->handleRegister(req);
+    };
+
+    endpointHandlers["update_user"] = [this](const QJsonObject& req) {
+        return this->handleUpdUser(req);
+    };
+
+    endpointHandlers["create_space"] = [this](const QJsonObject& req) {
+        return this->handleCreateSpace(req);
+    };
+
+    endpointHandlers["spaces"] = [this](const QJsonObject& req) {
+        return this->handleGetSpaces(req);
+    };
+
+    endpointHandlers["update_space"] = [this](const QJsonObject& req) {
+        return this->handleUpdateSpace(req);
+    };
+
+    endpointHandlers["delete_space"] = [this](const QJsonObject& req) {
+        return this->handleDeleteSpace(req);
+    };
+
+    endpointHandlers["create_task"] = [this](const QJsonObject& req) {
+        return this->handleCreateTasks(req);
+    };
+
+    endpointHandlers["tasks"] = [this](const QJsonObject& req) {
+        return this->handleGetTasks(req);
+    };
+
+    endpointHandlers["update_task"] = [this](const QJsonObject& req) {
+        return this->handleUpdTask(req);
+    };
+
+    endpointHandlers["delete_task"] = [this](const QJsonObject& req) {
+        return this->handleDltTask(req);
+    };
 }
 
 void ClientHandler::initializeDatabase() {
@@ -50,13 +98,6 @@ void ClientHandler::initializeDatabase() {
                    "due_time DATETIME,"
                    "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
                    "FOREIGN KEY (space_id) REFERENCES spaces(id))");
-
-        query.exec("CREATE TABLE IF NOT EXISTS images ("
-                   "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                   "source TEXT UNIQUE,"
-                   "user_id INTEGER,"
-                   "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
-                   "FOREIGN KEY (user_id) REFERENCES users(id)))");
     }
 }
 
@@ -76,38 +117,39 @@ void ClientHandler::handleConnection() {
 
 void ClientHandler::readData() {
     QByteArray requestData = m_socket->readAll();
-    qDebug() << "Received data:" << requestData;
 
     QJsonDocument jsonDoc = QJsonDocument::fromJson(requestData);
     QJsonObject request = jsonDoc.object();
 
     QJsonObject response;
     QString endpoint = request.value("endpoint").toString();
-    if (endpoint == "login") {
-        response = handleLogin(request);
-    } else if (endpoint == "register") {
-        response = handleRegister(request);
-    } else if (endpoint == "update_user") {
-        response = handleUpdUser(request);
-    } else if (endpoint == "create_space") {
-        response = handleCreateSpace(request);
-    } else if (endpoint == "spaces") {
-        response = handleGetSpaces(request);
-    } else if (endpoint == "update_space") {
-        response = handleUpdateSpace(request);
-    } else if (endpoint == "delete_space") {
-        response = handleDeleteSpace(request);
-    } else if (endpoint == "create_task") {
-        response = handleCreateTasks(request);
-    }else if (endpoint == "tasks") {
-        response = handleGetTasks(request);
-    } else if (endpoint == "update_task") {
-        response = handleUpdTask(request);
-    } else if (endpoint == "delete_task") {
-        response = handleDltTask(request);
+
+    auto it = endpointHandlers.find(endpoint);
+    if(it != endpointHandlers.end()) {
+        try {
+            EndPointHandlerFunc handler = it.value();
+            response = handler(requestJson);
+        } catch (const std::exception& e) {
+            qCritical() << "Exception during handling endpoint" << endpoint << ":" << e.what();
+            response = {
+                {"status", "error"},
+                {"message", "Internal server error during handling."}
+            };
+        } catch (...) {
+            qCritical() << "Unknown exception during handling endpoint" << endpoint;
+            response = {
+                {"status", "error"},
+                {"message", "Unknown internal server error."}
+            };
+        }
     } else {
-        response["success"] = false;
-        response["error"] = "Unknown endpoint.";
+        qWarning() << "Unknown endpoint requested:" << endpoint;
+        response = {
+            {"status", "error"},
+            {"message", "Unknown endpoint"}
+        };
+        // Добавляем исходный endpoint для отладки, если нужно
+        response["requested_endpoint"] = endpoint;
     }
 
     // Отправка ответа
@@ -230,7 +272,6 @@ QJsonObject ClientHandler::handleCreateSpace(const QJsonObject& request) {
     if (query.exec() && query.next()) {
         int spaceId = query.value("id").toInt();
         int user_id = query.value("user_id").toInt();
-        // QString token = SessionManager::instance().createSession(userId);
 
         qDebug() << "Пространство успешно создано: " << user_id;
         response["success"] = true;
@@ -259,7 +300,8 @@ QJsonObject ClientHandler::handleGetSpaces(const QJsonObject& request) {
 
     int userId = request.value("userId").toInt();
     QSqlQuery query(m_refDatabase);
-    query.prepare("SELECT spaces.id, spaces.spacename, spaces.isFavorite, COUNT(tasks.id) AS task_count, MAX(tasks.due_time) AS last_task_time "
+    query.prepare("SELECT spaces.id, spaces.spacename, spaces.isFavorite, COUNT(tasks.id) AS task_count, "
+                  "MAX(tasks.due_time) AS last_task_time "
                   "FROM spaces "
                   "LEFT JOIN tasks ON spaces.id = tasks.space_id "
                   "WHERE spaces.user_id = :user_id "
@@ -282,7 +324,6 @@ QJsonObject ClientHandler::handleGetSpaces(const QJsonObject& request) {
         int task_count = query.value("task_count").toInt();
         bool is_favorite = query.value("isFavorite").toBool();
         QString last_task_time = query.value("last_task_time").toString();
-        // QString token = SessionManager::instance().createSession(userId);
 
         responseToArray["spaceId"] = spaceId;
         responseToArray["spacename"] = spacename;
@@ -337,8 +378,6 @@ QJsonObject ClientHandler::handleCreateTasks(const QJsonObject& request) {
     if (query.exec() && query.next()) {
         int taskId = query.value("id").toInt();
 
-        qDebug() << "Таск успешно создан: " << taskId;
-
         QString currentTime = QDateTime::currentDateTimeUtc().toString();
         response["success"] = true;
         response["taskId"] = taskId;
@@ -391,9 +430,6 @@ QJsonObject ClientHandler::handleGetTasks(const QJsonObject& request) {
         QString status = query.value("status").toString();
         QString due_time = query.value("due_time").toString();
         QString created_at = query.value("created_at").toString();
-
-        // QString token = SessionManager::instance().createSession(userId);
-        qDebug() << "Таск: " << taskId;
 
         responseToArray["taskId"] = taskId;
         responseToArray["title"] = title;

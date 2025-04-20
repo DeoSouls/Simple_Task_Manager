@@ -47,7 +47,6 @@ qt_add_qml_module(appSimpleTaskManager
         QML_FILES HomePage/ProjectListing.qml
         QML_FILES MenuPage/MainMenu.qml
         QML_FILES SettingsPage/Settings.qml
-        SOURCES server/requesttask.h server/requesttask.cpp
         SOURCES server/sessionmanager.h server/sessionmanager.cpp
         SOURCES src/client.h src/client.cpp
         QML_FILES LoginPage/Login.qml
